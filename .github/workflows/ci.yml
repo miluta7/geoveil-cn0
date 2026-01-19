@@ -107,9 +107,8 @@ jobs:
       - name: Collect all wheels
         run: |
           mkdir -p dist
-          cp target/wheels/*.whl dist/ || true
+          cp wheels/*.whl dist/ || true
           cp target/wheels/*.tar.gz dist/ || true
-          cp wheels/**/*.whl dist/ || true
           ls -la dist/
           
       - name: Publish to PyPI
