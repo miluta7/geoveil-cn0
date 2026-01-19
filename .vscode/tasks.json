@@ -1,0 +1,39 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build (Debug)",
+            "type": "shell",
+            "command": "maturin develop --features python",
+            "group": "build",
+            "problemMatcher": ["$rustc"],
+            "presentation": {"reveal": "always"}
+        },
+        {
+            "label": "Build (Release)",
+            "type": "shell", 
+            "command": "maturin develop --features python --release",
+            "group": {"kind": "build", "isDefault": true},
+            "problemMatcher": ["$rustc"],
+            "presentation": {"reveal": "always"}
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "cargo test && python -c \"import geoveil_cn0; print('OK:', geoveil_cn0.VERSION)\"",
+            "group": "test"
+        },
+        {
+            "label": "Run GUI",
+            "type": "shell",
+            "command": "python geoveil_cn0_gui.py",
+            "group": "none"
+        },
+        {
+            "label": "Build Wheel",
+            "type": "shell",
+            "command": "maturin build --features python --release",
+            "group": "build"
+        }
+    ]
+}

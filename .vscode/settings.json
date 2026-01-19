@@ -1,0 +1,12 @@
+{
+    "rust-analyzer.cargo.features": ["python"],
+    "rust-analyzer.check.command": "clippy",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    "editor.formatOnSave": true,
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    "files.exclude": {
+        "target": true
+    }
+}

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "geoveil-cn0"
+version = "0.3.1"
+description = "GNSS CN0 Analysis Library - Interference, Jamming & Spoofing Detection"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Miluta Dulea-Flueras", email = "miluta.flueras@cartografie.ro"}
+]
+keywords = [
+    "gnss", "gps", "glonass", "galileo", "beidou",
+    "cn0", "snr", "signal-quality",
+    "rinex", "navigation", "ephemeris",
+    "interference", "jamming", "spoofing",
+    "multipath", "anomaly-detection"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.urls]
+Homepage = "https://github.com/miluta7/geoveil-cn0"
+Documentation = "https://github.com/miluta7/geoveil-cn0#readme"
+Repository = "https://github.com/miluta7/geoveil-cn0"
+Issues = "https://github.com/miluta7/geoveil-cn0/issues"
+Changelog = "https://github.com/miluta7/geoveil-cn0/releases"
+
+[project.optional-dependencies]
+dev = ["pytest", "numpy", "pandas", "plotly"]
+notebook = ["ipywidgets", "jupyter", "plotly", "pandas", "numpy"]
+
+[tool.maturin]
+features = ["python"]
+module-name = "geoveil_cn0"
+strip = true
