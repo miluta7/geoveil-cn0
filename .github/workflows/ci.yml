@@ -89,6 +89,7 @@ jobs:
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
+          pattern: wheel-*
           path: wheels
           merge-multiple: true
           
