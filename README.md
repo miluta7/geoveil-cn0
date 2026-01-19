@@ -199,7 +199,7 @@ If you use this library in research, please cite:
 @software{geoveil_cn0,
   author = {Dulea-Flueras, Miluta},
   title = {geoveil-cn0: GNSS CN0 Signal Quality Analysis Library},
-  year = {2025},
+  year = {2026},
   url = {https://github.com/miluta7/geoveil-cn0}
 }
 ```
