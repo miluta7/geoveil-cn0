@@ -621,11 +621,159 @@ def show_summary(btn):
         print(f"   Score: {lock_data['score']:.0f}/100")
         
         print(f"\n🛡️ THREAT ASSESSMENT:")
-        print(f"   Jamming:      {'🚨 DETECTED' if result.jamming_detected else '✅ None'}")
-        print(f"   Spoofing:     {'🚨 DETECTED' if result.spoofing_detected else '✅ None'}")
-        print(f"   Interference: {'⚠️ Detected' if result.interference_detected else '✅ None'}")
         
-        print(f"\n📝 {result.summary}")
+        # === IMPROVED THREAT DETECTION ===
+        # Don't blindly trust the library's spoofing flag - it has false positives
+        # When ephemeris doesn't cover all satellites (especially BeiDou), it triggers falsely
+        
+        # Jamming: Only if low CN0 + many critical anomalies
+        jamming_detected = result.jamming_detected and result.mean_cn0 < 35.0
+        
+        # Spoofing: Library flag + sanity check
+        # Real spoofing: abnormally uniform CN0 across ALL satellites AND elevated CN0
+        # Check per-constellation std to avoid false positives from incomplete ephemeris
+        constellation_stds = []
+        for sys_name in ['GPS', 'GLONASS', 'Galileo', 'BeiDou']:
+            stats = result.get_constellation_summary(sys_name)
+            if stats:
+                try:
+                    std_cn0 = float(stats.get('std_cn0', stats.get('cn0_std', 5.0)))
+                    constellation_stds.append(std_cn0)
+                except:
+                    pass
+        
+        avg_constellation_std = sum(constellation_stds) / len(constellation_stds) if constellation_stds else 5.0
+        
+        # Real spoofing indicators:
+        # 1. Very low CN0 std across constellations (< 2 dB) - signals too uniform
+        # 2. AND elevated average CN0 (> 50 dB-Hz) - spoofer typically overpowers
+        # 3. AND overall std also low
+        spoofing_indicators = []
+        if avg_constellation_std < 2.0:
+            spoofing_indicators.append("CN0 uniformity suspiciously low")
+        if result.mean_cn0 > 50.0:
+            spoofing_indicators.append("CN0 elevated (possible high-power signal)")
+        if result.cn0_std_dev < 1.0:
+            spoofing_indicators.append("Overall signal variance very low")
+        
+        # Only flag spoofing if multiple indicators present
+        spoofing_suspicious = len(spoofing_indicators) >= 2
+        
+        # If library says spoofing but our checks don't agree, it's likely false positive from ephemeris
+        if result.spoofing_detected and not spoofing_suspicious:
+            print(f"   Jamming:      {'🚨 DETECTED' if jamming_detected else '✅ None'}")
+            print(f"   Spoofing:     ⚠️ Flag raised (likely false positive - incomplete ephemeris)")
+            print(f"   Interference: {'⚠️ Detected' if result.interference_detected else '✅ None'}")
+        else:
+            print(f"   Jamming:      {'🚨 DETECTED' if jamming_detected else '✅ None'}")
+            print(f"   Spoofing:     {'🚨 DETECTED' if spoofing_suspicious else '✅ None'}")
+            print(f"   Interference: {'⚠️ Detected' if result.interference_detected else '✅ None'}")
+        
+        if spoofing_indicators and spoofing_suspicious:
+            print(f"   └─ Indicators: {', '.join(spoofing_indicators)}")
+        
+        # === GENERATE PROPER SUMMARY BASED ON DISPLAYED SCORE ===
+        # Don't use result.summary - it's based on internal score with different weights
+        overall_score = qs.overall
+        
+        if overall_score >= 90:
+            quality_text = "Excellent GNSS signal quality"
+        elif overall_score >= 80:
+            quality_text = "Good GNSS signal quality"
+        elif overall_score >= 70:
+            quality_text = "Fair GNSS signal quality"
+        elif overall_score >= 60:
+            quality_text = "Degraded GNSS signal quality"
+        else:
+            quality_text = "Poor GNSS signal quality"
+        
+        # Add warnings if needed
+        warnings = []
+        if jamming_detected:
+            warnings.append("jamming detected")
+        if spoofing_suspicious:
+            warnings.append("spoofing indicators present")
+        if result.interference_detected:
+            warnings.append("interference events detected")
+        if lock_data['score'] < 50:
+            warnings.append("significant lock loss issues")
+        
+        if warnings:
+            summary_text = f"{quality_text} - WARNING: {', '.join(warnings)}"
+        else:
+            summary_text = quality_text
+        
+        print(f"\n📝 {summary_text}")
+        
+        # === ANALYSIS CONCLUSION ===
+        print(f"\n" + "=" * 70)
+        print(f"📋 CONCLUSION:")
+        print(f"=" * 70)
+        
+        conclusions = []
+        
+        # Overall assessment
+        if overall_score >= 90:
+            conclusions.append("✅ Data quality is EXCELLENT - suitable for high-precision applications (PPP/PPK)")
+        elif overall_score >= 80:
+            conclusions.append("✅ Data quality is GOOD - suitable for standard GNSS applications")
+        elif overall_score >= 70:
+            conclusions.append("⚠️ Data quality is FAIR - usable but may have reduced accuracy")
+        elif overall_score >= 60:
+            conclusions.append("⚠️ Data quality is DEGRADED - review anomalies before use")
+        else:
+            conclusions.append("❌ Data quality is POOR - significant issues detected")
+        
+        # Signal strength assessment
+        if result.mean_cn0 >= 45:
+            conclusions.append(f"✅ Signal strength EXCELLENT ({result.mean_cn0:.1f} dB-Hz average)")
+        elif result.mean_cn0 >= 40:
+            conclusions.append(f"✅ Signal strength GOOD ({result.mean_cn0:.1f} dB-Hz average)")
+        elif result.mean_cn0 >= 35:
+            conclusions.append(f"⚠️ Signal strength MODERATE ({result.mean_cn0:.1f} dB-Hz average)")
+        else:
+            conclusions.append(f"❌ Signal strength LOW ({result.mean_cn0:.1f} dB-Hz) - possible interference")
+        
+        # Constellation coverage
+        total_sats = sum(int(result.get_constellation_summary(s).get('satellite_count', 0)) 
+                        for s in ['GPS', 'GLONASS', 'Galileo', 'BeiDou'] 
+                        if result.get_constellation_summary(s))
+        if total_sats >= 40:
+            conclusions.append(f"✅ Excellent multi-GNSS coverage ({total_sats} satellites)")
+        elif total_sats >= 25:
+            conclusions.append(f"✅ Good satellite coverage ({total_sats} satellites)")
+        else:
+            conclusions.append(f"⚠️ Limited satellite coverage ({total_sats} satellites)")
+        
+        # Lock integrity
+        if lock_data['score'] >= 80:
+            conclusions.append("✅ Signal continuity is excellent (minimal lock losses)")
+        elif lock_data['score'] >= 60:
+            conclusions.append("✅ Signal continuity is acceptable")
+        else:
+            conclusions.append(f"⚠️ Signal continuity issues detected ({lock_data['total_data_gaps']} data gaps)")
+        
+        # Threat summary
+        if not (jamming_detected or spoofing_suspicious or result.interference_detected):
+            conclusions.append("✅ No significant threats detected")
+        else:
+            if jamming_detected:
+                conclusions.append("🚨 JAMMING DETECTED - data may be compromised")
+            if spoofing_suspicious:
+                conclusions.append("🚨 SPOOFING INDICATORS - verify data integrity")
+            if result.interference_detected:
+                conclusions.append("⚠️ Interference events detected - review anomaly timeline")
+        
+        # Post-processing recommendation
+        if overall_score >= 70 and result.mean_cn0 >= 35 and lock_data['score'] >= 50:
+            conclusions.append("✅ Data suitable for post-processing (PPP/RTK)")
+        else:
+            conclusions.append("⚠️ Review issues before post-processing")
+        
+        for c in conclusions:
+            print(f"   {c}")
+        
+        print(f"\n" + "=" * 70)
         
         # Constellation summary
         print(f"\n🛰️ CONSTELLATION SUMMARY:")
