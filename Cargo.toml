@@ -1,6 +1,6 @@
 [package]
 name = "geoveil-cn0"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Miluta Dulea-Flueras"]
 description = "GNSS CN0 Analysis Library with Interference and Anomaly Detection"
