@@ -18,7 +18,7 @@ use crate::cn0::CN0Analyzer;
 
 /// Version string
 #[cfg(feature = "python")]
-pub const VERSION: &str = "0.3.1";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Python wrapper for QualityScore with notebook-compatible attributes
 #[cfg(feature = "python")]

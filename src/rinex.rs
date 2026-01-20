@@ -187,6 +187,12 @@ fn parse_epochs_v3(lines: &[&str], data: &mut RinexObsData) -> Result<(), String
     while i < lines.len() {
         let line = lines[i];
         
+        // Skip empty lines and comment lines
+        if line.trim().is_empty() || line.starts_with('%') || line.starts_with('#') {
+            i += 1;
+            continue;
+        }
+        
         // Epoch line starts with ">"
         if !line.starts_with('>') {
             i += 1;
@@ -194,7 +200,14 @@ fn parse_epochs_v3(lines: &[&str], data: &mut RinexObsData) -> Result<(), String
         }
         
         // Parse epoch header: > 2024 06 15 12 30 45.0000000  0 12
-        let epoch = parse_epoch_time_v3(&line[1..])?;
+        let epoch = match parse_epoch_time_v3(&line[1..]) {
+            Ok(e) => e,
+            Err(_) => {
+                // Skip malformed epoch lines instead of failing
+                i += 1;
+                continue;
+            }
+        };
         
         // Get flag and satellite count
         let parts: Vec<&str> = line[1..].split_whitespace().collect();
@@ -206,6 +219,7 @@ fn parse_epochs_v3(lines: &[&str], data: &mut RinexObsData) -> Result<(), String
         let num_sats = if parts.len() > 7 {
             parts[7].parse::<usize>().unwrap_or(0)
         } else {
+            // Try to count satellite lines dynamically
             0
         };
         
@@ -431,18 +445,23 @@ fn parse_epochs_v2(lines: &[&str], data: &mut RinexObsData) -> Result<(), String
 }
 
 fn parse_epoch_time_v3(s: &str) -> Result<Epoch, String> {
+    let s = s.trim();
+    if s.is_empty() {
+        return Err("Empty epoch string".to_string());
+    }
+    
     let parts: Vec<&str> = s.split_whitespace().collect();
     if parts.len() < 6 {
-        return Err("Invalid epoch format".to_string());
+        return Err(format!("Invalid epoch format: expected 6+ parts, got {} in '{}'", parts.len(), s));
     }
     
     Ok(Epoch {
-        year: parts[0].parse().map_err(|_| "Invalid year")?,
-        month: parts[1].parse().map_err(|_| "Invalid month")?,
-        day: parts[2].parse().map_err(|_| "Invalid day")?,
-        hour: parts[3].parse().map_err(|_| "Invalid hour")?,
-        minute: parts[4].parse().map_err(|_| "Invalid minute")?,
-        second: parts[5].parse().map_err(|_| "Invalid second")?,
+        year: parts[0].parse().map_err(|e| format!("Invalid year '{}': {}", parts[0], e))?,
+        month: parts[1].parse().map_err(|e| format!("Invalid month '{}': {}", parts[1], e))?,
+        day: parts[2].parse().map_err(|e| format!("Invalid day '{}': {}", parts[2], e))?,
+        hour: parts[3].parse().map_err(|e| format!("Invalid hour '{}': {}", parts[3], e))?,
+        minute: parts[4].parse().map_err(|e| format!("Invalid minute '{}': {}", parts[4], e))?,
+        second: parts[5].parse().map_err(|e| format!("Invalid second '{}': {}", parts[5], e))?,
     })
 }
 

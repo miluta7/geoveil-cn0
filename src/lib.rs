@@ -28,7 +28,7 @@ pub use tle::*;
 pub use visibility::*;
 pub use cn0::*;
 
-pub const VERSION: &str = "0.3.1";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Physical constants
 pub const SPEED_OF_LIGHT: f64 = 299792458.0;
