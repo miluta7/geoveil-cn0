@@ -12,7 +12,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Run tests
   test:
     runs-on: ubuntu-latest
     steps:
@@ -27,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           
       - name: Install maturin
         run: pip install maturin
@@ -40,14 +39,13 @@ jobs:
           pip install target/wheels/*.whl
           python -c "import geoveil_cn0 as gcn0; print(f'Version: {gcn0.VERSION}')"
 
-  # Build wheels for multiple platforms
   build-wheels:
     needs: test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
         
     steps:
       - uses: actions/checkout@v4
@@ -60,7 +58,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         
-      - name: Build wheel (Linux)
+      - name: Build wheel (Linux manylinux)
         if: runner.os == 'Linux'
         uses: PyO3/maturin-action@v1
         with:
@@ -79,16 +77,10 @@ jobs:
           name: wheel-${{ matrix.os }}-py${{ matrix.python-version }}
           path: target/wheels/*.whl
 
-  # Publish to PyPI on tag
   publish:
     needs: build-wheels
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/geoveil-cn0
-    permissions:
-      id-token: write
     
     steps:
       - uses: actions/checkout@v4
@@ -103,15 +95,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           
       - name: Install maturin
-        run: pip install maturin
+        run: pip install maturin twine
         
       - name: Build source distribution
         run: maturin build --release --sdist
         
-      - name: Collect all wheels
+      - name: Collect all artifacts
         run: |
           mkdir -p dist
           cp wheels/*.whl dist/ || true
@@ -119,6 +111,7 @@ jobs:
           ls -la dist/
           
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/* --skip-existing
