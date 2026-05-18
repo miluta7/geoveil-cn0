@@ -177,7 +177,7 @@ impl CN0Analyzer {
                     continue;
                 }
                 
-                let prn: u32 = sat_id[1..].trim().parse().unwrap_or(0);
+                let prn: u32 = sat_id.get(1..).unwrap_or("").trim().parse().unwrap_or(0);
                 let system = match sys_char {
                     'G' => "GPS",
                     'R' => "GLONASS",
