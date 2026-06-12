@@ -1,24 +1,17 @@
 # geoveil-cn0
 
 [![PyPI version](https://badge.fury.io/py/geoveil-cn0.svg)](https://pypi.org/project/geoveil-cn0/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/geoveil-cn0.svg)](https://pypi.org/project/geoveil-cn0/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![GitHub](https://img.shields.io/github/stars/miluta7/geoveil-cn0?style=social)](https://github.com/miluta7/geoveil-cn0)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Rust](https://img.shields.io/badge/powered%20by-Rust-orange.svg)](https://www.rust-lang.org/)
+[![GitHub Stars](https://img.shields.io/github/stars/miluta7/geoveil-cn0?style=social)](https://github.com/miluta7/geoveil-cn0)
 
-**High-performance GNSS CN0 (Carrier-to-Noise) Signal Quality Analysis Library**
+**High-performance GNSS signal quality analysis library — Rust core, Python API**
 
-A Rust-powered Python library for analyzing GNSS signal quality from RINEX observation files. Detect interference, jamming, spoofing, and multipath effects with research-grade algorithms.
+Analyze RINEX observation files to compute signal quality scores, detect threats (jamming, spoofing, interference), generate per-constellation statistics, and produce skyplot data. Used in production geodetic monitoring, precision agriculture, and GNSS security research.
 
-## Features
-
-- 🛰️ **Multi-GNSS Support**: GPS, GLONASS, Galileo, BeiDou, QZSS, NavIC
-- 📊 **CN0 Analysis**: Signal strength statistics, timeseries, and quality scoring
-- 🚨 **Threat Detection**: Jamming, spoofing, and interference indicators
-- 📈 **Anomaly Detection**: Configurable sensitivity for signal anomalies
-- 🗺️ **Skyplot Data**: Satellite positions with azimuth/elevation (requires NAV file)
-- ⚡ **High Performance**: Rust core with Python bindings via PyO3
-- 📁 **RINEX Support**: Parse RINEX 2.x, 3.x, and 4.x observation files
-- 🧭 **Navigation Files**: BRDC broadcast ephemeris and SP3 precise orbits
+---
 
 ## Installation
 
@@ -26,180 +19,225 @@ A Rust-powered Python library for analyzing GNSS signal quality from RINEX obser
 pip install geoveil-cn0
 ```
 
+No Rust toolchain required — pre-built wheels for Linux (x86\_64 + ARM/piwheels), Windows, and macOS.
+
+---
+
 ## Quick Start
 
 ```python
 import geoveil_cn0 as gcn0
 
-# Create analysis configuration
+print(gcn0.VERSION)  # e.g. "0.3.7"
+
+# Configure analysis
 config = gcn0.AnalysisConfig(
-    min_elevation=5.0,           # Elevation mask (degrees)
-    time_bin_seconds=60,         # Time binning for statistics
-    detect_anomalies=True,       # Enable anomaly detection
-    anomaly_sensitivity=0.3,     # Sensitivity (0-1, lower = fewer false positives)
-    interference_threshold_db=8.0,  # CN0 drop threshold for interference
+    min_elevation=5.0,            # Elevation mask in degrees
+    time_bin=60,                  # Time-binning interval for statistics (seconds)
+    systems=["G", "R", "E", "C"], # GPS, GLONASS, Galileo, BeiDou
+    detect_anomalies=True,
+    anomaly_sensitivity=0.3,      # 0.1 = very sensitive, 1.0 = major events only
+    interference_threshold_db=8.0,
 )
 
-# Create analyzer
 analyzer = gcn0.CN0Analyzer(config)
 
-# Analyze observation file (with optional navigation for skyplots)
+# Analyze with BRDC navigation file (enables elevation filtering + skyplots)
 result = analyzer.analyze_with_nav("observation.rnx", "navigation.rnx")
 
-# Access results
-print(f"Quality Score: {result.quality_score.overall}/100 ({result.quality_score.rating})")
-print(f"Average CN0: {result.avg_cn0:.1f} dB-Hz")
-print(f"Jamming Detected: {result.jamming_detected}")
-print(f"Spoofing Detected: {result.spoofing_detected}")
-print(f"Anomalies: {result.anomaly_count}")
-
-# Get detailed data
-for constellation in result.constellations:
-    stats = result.get_constellation_summary(constellation)
-    print(f"{constellation}: {stats['satellites_observed']} sats, CN0={stats['cn0_mean']:.1f} dB-Hz")
-
-# Export to JSON
-json_data = result.to_json()
-```
-
-## Quality Score Components
-
-The quality score (0-100) is computed from multiple factors:
-
-| Component | Weight | Description |
-|-----------|--------|-------------|
-| CN0 Quality | 35% | Signal strength relative to thresholds |
-| Availability | 20% | Satellite availability vs expected |
-| Continuity | 20% | Data continuity (gaps, cycle slips) |
-| Stability | 15% | CN0 variance over time |
-| Diversity | 10% | Multi-constellation coverage |
-
-## Threat Detection Thresholds
-
-Based on research from ITU-R M.1902-1, Stanford GPS Lab, and GPS Solutions journal:
-
-- **Jamming**: Rapid CN0 drops >6 dB in <3 seconds
-- **Spoofing**: Abnormally uniform CN0 (std <2 dB) or elevated average
-- **Interference**: CN0 degradation >4 dB from baseline (ITU I/N=-6dB criterion)
-
-## API Reference
-
-### AnalysisConfig
-
-```python
-config = gcn0.AnalysisConfig(
-    min_elevation=5.0,              # Elevation cutoff in degrees
-    time_bin_seconds=60,            # Time bin for statistics
-    systems=['G', 'R', 'E', 'C'],   # GNSS systems to analyze
-    detect_anomalies=True,          # Enable anomaly detection
-    anomaly_sensitivity=0.3,        # 0-1, lower = stricter
-    interference_threshold_db=8.0,  # dB drop for interference flag
-    verbose=False,                  # Print debug info
-)
-```
-
-### CN0Analyzer
-
-```python
-analyzer = gcn0.CN0Analyzer(config)
-
-# Analyze without navigation (no skyplots)
+# — or without navigation (CN0 analysis only) —
 result = analyzer.analyze_file("observation.rnx")
 
-# Analyze with navigation (enables skyplots and elevation filtering)
-result = analyzer.analyze_with_nav("observation.rnx", "navigation.rnx")
-```
+# Core metrics
+print(f"Quality: {result.quality_score.overall:.1f}/100 ({result.quality_score.rating})")
+print(f"Mean CN0: {result.avg_cn0:.1f} dB-Hz  std: {result.cn0_std_dev:.1f}")
+print(f"Jamming: {result.jamming_detected}  Spoofing: {result.spoofing_detected}")
+print(f"Anomalies: {result.anomaly_count}")
 
-### AnalysisResult
+# Per-constellation breakdown
+for sys in result.get_systems():
+    s = result.get_constellation_summary(sys)
+    print(f"  {sys}: {s['satellites_observed']} sats, CN0={s['cn0_mean']:.1f} dB-Hz, avail={s['availability_ratio']}")
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `quality_score` | QualityScore | Overall quality metrics |
-| `avg_cn0` | float | Mean CN0 in dB-Hz |
-| `cn0_std_dev` | float | CN0 standard deviation |
-| `min_cn0`, `max_cn0` | float | CN0 range |
-| `jamming_detected` | bool | Jamming indicator |
-| `spoofing_detected` | bool | Spoofing indicator |
-| `interference_detected` | bool | Interference indicator |
-| `anomaly_count` | int | Number of anomalies |
-| `constellations` | list | Available constellations |
-| `duration_hours` | float | Observation duration |
-| `epoch_count` | int | Number of epochs |
-
-### Methods
-
-```python
-# Get constellation-specific statistics
-stats = result.get_constellation_summary("GPS")  # Returns dict
-
-# Get anomaly list
-anomalies = result.get_anomalies()  # Returns list of dicts
-
-# Get timeseries data for plotting
-ts_data = result.get_timeseries_data()  # Returns dict with timestamps, cn0_mean, etc.
-
-# Get skyplot data (requires navigation file)
-skyplot = result.get_skyplot_data()  # Returns list of satellite traces
-
-# Export to JSON
+# Export full result
 json_str = result.to_json()
 ```
 
-## Jupyter Notebook Widget
+---
 
-A ready-to-use interactive widget is included:
+## Supported File Formats
+
+| Type | Extensions | Versions |
+|------|-----------|---------|
+| Observation | `.obs`, `.rnx`, `.crx`, `.YYo` (e.g. `.26o`) | RINEX 2.x / 3.x / 4.x |
+| Navigation | `.nav`, `.rnx`, `.YYn`, `.YYg`, `.YYp` | BRDC mixed / GPS / GLONASS |
+| Precise orbits | `.sp3`, `.SP3` | SP3-c, SP3-d |
+| Compressed | `.gz`, `.Z`, `.crx` | Gzip, Unix-compress, Hatanaka |
+
+---
+
+## Quality Score
+
+Composite 0–100 score with letter rating (A–F), weighted from five components:
+
+| Component | Weight | Basis |
+|-----------|--------|-------|
+| CN0 Quality | 35% | Signal strength vs. constellation thresholds |
+| Availability | 20% | Observed vs. expected satellite count |
+| Continuity | 20% | Data-gap and cycle-slip rate |
+| Stability | 15% | CN0 variance over observation window |
+| Diversity | 10% | Multi-constellation coverage |
+
+---
+
+## Threat Detection
+
+Algorithms derived from ITU-R M.1902-1, Stanford GPS Lab, and GPS Solutions journal:
+
+| Threat | Detection Method | Default Threshold |
+|--------|-----------------|-----------|
+| **Jamming** | Rapid CN0 drop rate | >6 dB in <3 seconds |
+| **Spoofing** | CN0 uniformity anomaly | std <2 dB with elevated mean |
+| **Interference** | Sustained CN0 degradation | >4 dB from baseline (ITU I/N=−6 dB) |
+
+All thresholds are configurable via `AnalysisConfig`.
+
+---
+
+## API Reference
+
+### `AnalysisConfig`
 
 ```python
-# In Jupyter notebook
-exec(open("geoveil_cn0_gui.py").read())
+config = gcn0.AnalysisConfig(
+    min_elevation=5.0,              # Elevation cutoff (degrees)
+    time_bin=60,                    # Statistics time bin (seconds)
+    systems=["G", "R", "E", "C"],   # G=GPS R=GLONASS E=Galileo C=BeiDou J=QZSS I=NavIC
+    detect_anomalies=True,
+    anomaly_sensitivity=0.3,        # 0.1–1.0
+    interference_threshold_db=8.0,  # CN0 drop threshold (dB)
+    verbose=False,
+)
+```
+
+### `CN0Analyzer`
+
+| Method | Parameters | Returns |
+|--------|-----------|---------|
+| `analyze_file(obs_path)` | RINEX obs path | `AnalysisResult` |
+| `analyze_with_nav(obs_path, nav_path)` | obs + nav/SP3 path | `AnalysisResult` |
+
+### `AnalysisResult` — Properties
+
+| Property | Type | Unit | Description |
+|----------|------|------|-------------|
+| `quality_score` | `QualityScore` | — | Composite quality object |
+| `avg_cn0` / `mean_cn0` | float | dB-Hz | Mean carrier-to-noise ratio |
+| `cn0_std_dev` | float | dB-Hz | CN0 standard deviation |
+| `min_cn0`, `max_cn0` | float | dB-Hz | CN0 range |
+| `jamming_detected` | bool | — | Jamming indicator |
+| `spoofing_detected` | bool | — | Spoofing indicator |
+| `interference_detected` | bool | — | Interference indicator |
+| `anomaly_count` | int | — | Total anomaly events |
+| `duration_hours` | float | h | Observation window length |
+| `epoch_count` | int | — | Number of epochs parsed |
+| `constellations` | list[str] | — | Constellation names present |
+| `rinex_version` | str | — | File format version |
+| `station_name` | str | — | Marker name from RINEX header |
+
+### `AnalysisResult` — Methods
+
+```python
+result.get_systems()                      # -> List[str]   constellation codes
+result.get_constellation_summary("GPS")   # -> Dict        per-constellation stats
+result.get_anomalies()                    # -> List[Dict]  anomaly event list
+result.get_timeseries_data()              # -> Dict        time-binned CN0 series
+result.get_timestamps()                   # -> List[str]   ISO timestamp strings
+result.get_mean_cn0_series()              # -> List[float]
+result.get_satellite_count_series()       # -> List[int]
+result.get_skyplot_data()                 # -> List[Dict]  satellite az/el tracks (needs nav)
+result.to_json()                          # -> str         full JSON export
+```
+
+### `QualityScore`
+
+```python
+qs = result.quality_score
+qs.overall        # float  0–100
+qs.rating         # str    "A (Excellent)" … "F (Very Poor)"
+qs.cn0_quality    # float  component score
+qs.availability   # float  component score
+qs.continuity     # float  component score
+qs.stability      # float  component score
+qs.diversity      # float  component score
+```
+
+---
+
+## Jupyter Notebook Widget
+
+An interactive analysis widget is included (`notebooks/geoveil-cn0-widget.ipynb`):
+
+```bash
+pip install geoveil-cn0 plotly pandas ipywidgets matplotlib
+jupyter notebook notebooks/geoveil-cn0-widget.ipynb
 ```
 
 Features:
-- File upload or path input
-- Auto-download BRDC navigation files
-- Interactive Plotly charts
-- Quality radar, skyplots, heatmaps, timeseries
-- HTML report export
+- RINEX file upload or path input
+- BRDC navigation auto-download from IGS/MGEX
+- Interactive Plotly charts: CN0 timeseries, skyplot, signal heatmap, quality radar
+- Per-constellation signal statistics
+- Anomaly event list
+- One-click HTML report export
 
-## Data Sources
+---
 
-The library supports navigation data from:
+## Batch Processing
 
-- **BRDC**: IGS combined broadcast ephemeris
-- **SP3**: Precise orbits from ESA, GFZ, CODE, WHU
-- **TLE**: CelesTrak GNSS TLE (fallback)
+For large-scale production use, [geoveil-cn0-batch](https://github.com/miluta7/geoveil-cn0) wraps this library in a scalable microservices stack:
+
+- **FastAPI** REST + WebSocket API
+- **Celery** + Redis distributed task queue
+- **MongoDB** result storage
+- **MinIO** RINEX and graph data storage
+- **React** web dashboard with live progress, skyplots, and export
+
+Supports hundreds of RINEX files per session with per-session analysis settings, automatic ephemeris download, and multi-worker horizontal scaling.
+
+---
 
 ## Requirements
 
-- Python 3.8+
-- No runtime dependencies (Rust binary)
+- Python 3.9+
+- No runtime dependencies (pure Rust binary)
 
-Optional for notebooks:
-- `plotly` - Interactive charts
-- `pandas` - Data manipulation
-- `ipywidgets` - Jupyter widgets
+Optional (notebooks):
+- `plotly`, `pandas`, `ipywidgets`, `matplotlib`
+
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
 
 ## Author
 
-**Miluta Dulea-Flueras**
+**Miluta Dulea-Flueras** — [miluta.flueras@cartografie.ro](mailto:miluta.flueras@cartografie.ro)
 
 ## Contributing
 
-Contributions welcome! Please open an issue or pull request on [GitHub](https://github.com/miluta7/geoveil-cn0).
+Issues and pull requests welcome at [github.com/miluta7/geoveil-cn0](https://github.com/miluta7/geoveil-cn0).
 
 ## Citation
 
-If you use this library in research, please cite:
-
 ```bibtex
 @software{geoveil_cn0,
-  author = {Dulea-Flueras, Miluta},
-  title = {geoveil-cn0: GNSS CN0 Signal Quality Analysis Library},
-  year = {2026},
-  url = {https://github.com/miluta7/geoveil-cn0}
+  author    = {Dulea-Flueras, Miluta},
+  title     = {geoveil-cn0: High-Performance GNSS CN0 Signal Quality Analysis Library},
+  year      = {2026},
+  version   = {0.3.7},
+  url       = {https://github.com/miluta7/geoveil-cn0},
+  license   = {MIT}
 }
 ```

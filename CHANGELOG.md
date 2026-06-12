@@ -1,22 +1,79 @@
 # Changelog
 
-## [0.3.7] - 2026-05-18
+All notable changes to geoveil-cn0 are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+## [0.3.7] — 2026-05-18
 
 ### Fixed
-- Panic on empty satellite ID in RINEX parser (cn0.rs line 180).
-  sat_id[1..] panicked on malformed records with empty satellite ID string.
-  Fixed with sat_id.get(1..).unwrap_or("") which is bounds-safe.
-
-## [0.3.6] - 2026-04-26
-
-### Changed
-- manylinux compatibility improvements for Linux wheel builds
-
-## [0.3.5] and earlier
+- **Panic on empty satellite ID** (`cn0.rs:180`): `sat_id[1..]` panicked with
+  *"byte index 1 is out of bounds"* on RINEX observation records containing an
+  empty satellite identifier string (e.g. malformed RINEX 2 files from certain
+  TPS/Topcon receivers). Replaced with `sat_id.get(1..).unwrap_or("")` which is
+  bounds-safe and treats such records as PRN 0 (skipped).
 
 ### Added
-- Multi-GNSS CN0 analysis: GPS, GLONASS, Galileo, BeiDou, QZSS
-- Jamming, spoofing and interference detection
-- Skyplot data with azimuth/elevation from BRDC/SP3 ephemeris
-- RINEX 2.x, 3.x, 4.x support with Hatanaka decompression
-- Anomaly detection with configurable sensitivity
+- Source distribution (sdist) now published to PyPI — enables piwheels ARM builds
+  and `pip install geoveil-cn0` from source on unsupported platforms.
+
+---
+
+## [0.3.6] — 2026-04-26
+
+### Changed
+- manylinux2014 compatibility: switched to `manylinux: auto` in CI to produce
+  broader-compatible Linux wheels (previously required glibc ≥ 2.28).
+
+### Fixed
+- Build failure on Python 3.12 due to deprecated PyO3 ABI flags.
+
+---
+
+## [0.3.5] — 2026-01-20
+
+### Added
+- `get_skyplot_data()` now returns per-satellite azimuth/elevation tracks parsed
+  directly from BRDC/SP3 ephemeris; no longer requires SP3 for skyplot generation.
+- Hatanaka compressed RINEX (`.crx`, `.YYd`) decompression support.
+- `lock_integrity_score` quality sub-component replacing the deprecated
+  `lock_loss_score`.
+
+### Fixed
+- Spoofing false-positive rate reduced on high-quality geodetic receivers
+  (Leica, Trimble) with naturally tight CN0 distributions.
+
+---
+
+## [0.3.4] — 2026-01-19
+
+### Added
+- BeiDou (C) constellation full support: B1I, B2I, B3I signals.
+- QZSS (J) and NavIC/IRNSS (I) constellation parsing.
+- `diversity` quality component measuring multi-constellation coverage.
+
+---
+
+## [0.3.3] — 2026-01-19
+
+### Added
+- SP3 precise orbit support for elevation computation (fallback to BRDC).
+- `get_timeseries_data()` returns time-binned CN0, satellite count, and timestamp arrays.
+
+### Changed
+- Quality score rebalanced: CN0 weight 35%, Availability 20%, Continuity 20%,
+  Stability 15%, Diversity 10%.
+
+---
+
+## [0.3.2] — 2026-01-19
+
+### Added
+- Initial multi-GNSS support: GPS (G), GLONASS (R), Galileo (E).
+- Jamming, spoofing, and interference detection.
+- RINEX 2.x, 3.x, 4.x observation file parsing.
+- BRDC broadcast ephemeris parsing for azimuth/elevation computation.
+- Anomaly detection with configurable sensitivity threshold.
+- `to_json()` full result serialization.
+- PyO3 Python bindings with zero-copy result access.
