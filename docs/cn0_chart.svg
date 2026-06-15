@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="280" viewBox="0 0 800 280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1622"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="280" fill="url(#bg)" rx="10"/>
+
+  <!-- quality bands -->
+  <rect x="80" y="30" width="680" height="82" fill="#22c55e" fill-opacity="0.07"/>
+  <rect x="80" y="112" width="680" height="83" fill="#eab308" fill-opacity="0.07"/>
+  <rect x="80" y="195" width="680" height="35" fill="#ef4444" fill-opacity="0.07"/>
+
+  <!-- band labels -->
+  <text x="763" y="76" fill="#22c55e" fill-opacity="0.5" font-size="9" font-family="system-ui,sans-serif">GOOD</text>
+  <text x="763" y="157" fill="#eab308" fill-opacity="0.5" font-size="9" font-family="system-ui,sans-serif">FAIR</text>
+  <text x="763" y="217" fill="#ef4444" fill-opacity="0.5" font-size="9" font-family="system-ui,sans-serif">POOR</text>
+
+  <!-- grid -->
+  <line x1="80" y1="230.00" x2="760" y2="230.00" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="234.00" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">35</text>
+<line x1="80" y1="194.71" x2="760" y2="194.71" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="198.71" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">38</text>
+<line x1="80" y1="159.41" x2="760" y2="159.41" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="163.41" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">41</text>
+<line x1="80" y1="124.12" x2="760" y2="124.12" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="128.12" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">44</text>
+<line x1="80" y1="88.82" x2="760" y2="88.82" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="92.82" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">47</text>
+<line x1="80" y1="53.53" x2="760" y2="53.53" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="57.53" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">50</text>
+<line x1="80" y1="30.00" x2="760" y2="30.00" stroke="#1e2d3d" stroke-width="1"/>
+<text x="72" y="34.00" text-anchor="end" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">52</text>
+
+  <line x1="80.00" y1="30" x2="80.00" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="80.00" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">00:00</text>
+<line x1="198.26" y1="30" x2="198.26" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="198.26" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">04:00</text>
+<line x1="316.52" y1="30" x2="316.52" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="316.52" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">08:00</text>
+<line x1="434.78" y1="30" x2="434.78" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="434.78" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">12:00</text>
+<line x1="553.04" y1="30" x2="553.04" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="553.04" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">16:00</text>
+<line x1="671.30" y1="30" x2="671.30" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="671.30" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">20:00</text>
+<line x1="760.00" y1="30" x2="760.00" y2="230" stroke="#1e2d3d" stroke-width="1"/>
+<text x="760.00" y="247" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui,sans-serif">23:00</text>
+
+
+  <!-- chart border -->
+  <rect x="80" y="30" width="680" height="200" fill="none" stroke="#1e2d3d" stroke-width="1"/>
+
+  <!-- axis labels -->
+  <text x="14" y="135" fill="#94a3b8" font-size="11" font-family="system-ui,sans-serif" transform="rotate(-90,14,135)">CN0 (dB-Hz)</text>
+  <text x="400" y="270" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="system-ui,sans-serif">Hour (UTC)</text>
+
+  <!-- title -->
+  <text x="400" y="18" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="600" font-family="system-ui,sans-serif" letter-spacing="1">CN0 SIGNAL QUALITY — 24h</text>
+
+  <!-- data lines -->
+  <path d="M 80.000,133.529 C 89.855,133.529 99.710,130.000 109.565,130.000 C 119.420,130.000 129.275,126.471 139.130,126.471 C 148.986,126.471 158.841,124.118 168.696,124.118 C 178.551,124.118 188.406,121.765 198.261,121.765 C 208.116,121.765 217.971,118.235 227.826,118.235 C 237.681,118.235 247.536,115.882 257.391,115.882 C 267.246,115.882 277.101,119.412 286.957,119.412 C 296.812,119.412 306.667,121.765 316.522,121.765 C 326.377,121.765 336.232,125.294 346.087,125.294 C 355.942,125.294 365.797,127.647 375.652,127.647 C 385.507,127.647 395.362,130.000 405.217,130.000 C 415.072,130.000 424.928,132.353 434.783,132.353 C 444.638,132.353 454.493,128.824 464.348,128.824 C 474.203,128.824 484.058,126.471 493.913,126.471 C 503.768,126.471 513.623,122.941 523.478,122.941 C 533.333,122.941 543.188,120.588 553.043,120.588 C 562.899,120.588 572.754,117.059 582.609,117.059 C 592.464,117.059 602.319,119.412 612.174,119.412 C 622.029,119.412 631.884,122.941 641.739,122.941 C 651.594,122.941 661.449,126.471 671.304,126.471 C 681.159,126.471 691.014,130.000 700.870,130.000 C 710.725,130.000 720.580,133.529 730.435,133.529 C 740.290,133.529 750.145,131.176 760.000,131.176" fill="none" stroke="#34d399" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 80.000,121.765 C 89.855,121.765 99.710,118.235 109.565,118.235 C 119.420,118.235 129.275,114.706 139.130,114.706 C 148.986,114.706 158.841,117.059 168.696,117.059 C 178.551,117.059 188.406,113.529 198.261,113.529 C 208.116,113.529 217.971,111.176 227.826,111.176 C 237.681,111.176 247.536,108.824 257.391,108.824 C 267.246,108.824 277.101,112.353 286.957,112.353 C 296.812,112.353 306.667,114.706 316.522,114.706 C 326.377,114.706 336.232,118.235 346.087,118.235 C 355.942,118.235 365.797,120.588 375.652,120.588 C 385.507,120.588 395.362,122.941 405.217,122.941 C 415.072,122.941 424.928,125.294 434.783,125.294 C 444.638,125.294 454.493,121.765 464.348,121.765 C 474.203,121.765 484.058,119.412 493.913,119.412 C 503.768,119.412 513.623,115.882 523.478,115.882 C 533.333,115.882 543.188,112.353 553.043,112.353 C 562.899,112.353 572.754,110.000 582.609,110.000 C 592.464,110.000 602.319,113.529 612.174,113.529 C 622.029,113.529 631.884,117.059 641.739,117.059 C 651.594,117.059 661.449,120.588 671.304,120.588 C 681.159,120.588 691.014,124.118 700.870,124.118 C 710.725,124.118 720.580,121.765 730.435,121.765 C 740.290,121.765 750.145,119.412 760.000,119.412" fill="none" stroke="#f97316" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 80.000,102.941 C 89.855,102.941 99.710,99.412 109.565,99.412 C 119.420,99.412 129.275,95.882 139.130,95.882 C 148.986,95.882 158.841,100.588 168.696,100.588 C 178.551,100.588 188.406,97.059 198.261,97.059 C 208.116,97.059 217.971,94.706 227.826,94.706 C 237.681,94.706 247.536,91.176 257.391,91.176 C 267.246,91.176 277.101,87.647 286.957,87.647 C 296.812,87.647 306.667,90.000 316.522,90.000 C 326.377,90.000 336.232,92.353 346.087,92.353 C 355.942,92.353 365.797,95.882 375.652,95.882 C 385.507,95.882 395.362,98.235 405.217,98.235 C 415.072,98.235 424.928,100.588 434.783,100.588 C 444.638,100.588 454.493,102.941 464.348,102.941 C 474.203,102.941 484.058,99.412 493.913,99.412 C 503.768,99.412 513.623,97.059 523.478,97.059 C 533.333,97.059 543.188,93.529 553.043,93.529 C 562.899,93.529 572.754,91.176 582.609,91.176 C 592.464,91.176 602.319,94.706 612.174,94.706 C 622.029,94.706 631.884,98.235 641.739,98.235 C 651.594,98.235 661.449,101.765 671.304,101.765 C 681.159,101.765 691.014,104.118 700.870,104.118 C 710.725,104.118 720.580,101.765 730.435,101.765 C 740.290,101.765 750.145,99.412 760.000,99.412" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 80.000,94.706 C 89.855,94.706 99.710,91.176 109.565,91.176 C 119.420,91.176 129.275,87.647 139.130,87.647 C 148.986,87.647 158.841,85.294 168.696,85.294 C 178.551,85.294 188.406,82.941 198.261,82.941 C 208.116,82.941 217.971,79.412 227.826,79.412 C 237.681,79.412 247.536,77.059 257.391,77.059 C 267.246,77.059 277.101,79.412 286.957,79.412 C 296.812,79.412 306.667,82.941 316.522,82.941 C 326.377,82.941 336.232,86.471 346.087,86.471 C 355.942,86.471 365.797,88.824 375.652,88.824 C 385.507,88.824 395.362,91.176 405.217,91.176 C 415.072,91.176 424.928,93.529 434.783,93.529 C 444.638,93.529 454.493,90.000 464.348,90.000 C 474.203,90.000 484.058,87.647 493.913,87.647 C 503.768,87.647 513.623,84.118 523.478,84.118 C 533.333,84.118 543.188,81.765 553.043,81.765 C 562.899,81.765 572.754,78.235 582.609,78.235 C 592.464,78.235 602.319,80.588 612.174,80.588 C 622.029,80.588 631.884,84.118 641.739,84.118 C 651.594,84.118 661.449,87.647 671.304,87.647 C 681.159,87.647 691.014,91.176 700.870,91.176 C 710.725,91.176 720.580,93.529 730.435,93.529 C 740.290,93.529 750.145,90.000 760.000,90.000" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- dots for GPS and Galileo (most prominent) -->
+  <circle cx="80.000" cy="102.941" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="109.565" cy="99.412" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="139.130" cy="95.882" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="168.696" cy="100.588" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="198.261" cy="97.059" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="227.826" cy="94.706" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="257.391" cy="91.176" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="286.957" cy="87.647" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="316.522" cy="90.000" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="346.087" cy="92.353" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="375.652" cy="95.882" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="405.217" cy="98.235" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="434.783" cy="100.588" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="464.348" cy="102.941" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="493.913" cy="99.412" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="523.478" cy="97.059" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="553.043" cy="93.529" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="582.609" cy="91.176" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="612.174" cy="94.706" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="641.739" cy="98.235" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="671.304" cy="101.765" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="700.870" cy="104.118" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="730.435" cy="101.765" r="2.5" fill="#60a5fa" opacity="0.85"/>
+<circle cx="760.000" cy="99.412" r="2.5" fill="#60a5fa" opacity="0.85"/>
+  <circle cx="80.000" cy="94.706" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="109.565" cy="91.176" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="139.130" cy="87.647" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="168.696" cy="85.294" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="198.261" cy="82.941" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="227.826" cy="79.412" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="257.391" cy="77.059" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="286.957" cy="79.412" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="316.522" cy="82.941" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="346.087" cy="86.471" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="375.652" cy="88.824" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="405.217" cy="91.176" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="434.783" cy="93.529" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="464.348" cy="90.000" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="493.913" cy="87.647" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="523.478" cy="84.118" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="553.043" cy="81.765" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="582.609" cy="78.235" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="612.174" cy="80.588" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="641.739" cy="84.118" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="671.304" cy="87.647" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="700.870" cy="91.176" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="730.435" cy="93.529" r="2.5" fill="#a78bfa" opacity="0.85"/>
+<circle cx="760.000" cy="90.000" r="2.5" fill="#a78bfa" opacity="0.85"/>
+
+  <!-- legend -->
+  <rect x="84" y="34" width="8" height="8" rx="2" fill="#60a5fa"/>
+  <text x="96" y="43" fill="#94a3b8" font-size="10" font-family="system-ui,sans-serif">GPS</text>
+  <rect x="130" y="34" width="8" height="8" rx="2" fill="#f97316"/>
+  <text x="142" y="43" fill="#94a3b8" font-size="10" font-family="system-ui,sans-serif">GLONASS</text>
+  <rect x="197" y="34" width="8" height="8" rx="2" fill="#a78bfa"/>
+  <text x="209" y="43" fill="#94a3b8" font-size="10" font-family="system-ui,sans-serif">Galileo</text>
+  <rect x="256" y="34" width="8" height="8" rx="2" fill="#34d399"/>
+  <text x="268" y="43" fill="#94a3b8" font-size="10" font-family="system-ui,sans-serif">BeiDou</text>
+</svg>

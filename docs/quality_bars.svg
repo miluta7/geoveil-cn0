@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="220" viewBox="0 0 760 220">
+  <rect width="760" height="220" fill="#0b1622" rx="10"/>
+
+  <!-- Title -->
+  <text x="20" y="30" fill="#cbd5e1" font-size="13" font-weight="600" font-family="system-ui,sans-serif" letter-spacing="1">QUALITY SCORE BREAKDOWN</text>
+
+  <!-- Overall score top-right -->
+  <text x="730" y="42" text-anchor="end" fill="#22c55e" font-size="36" font-weight="700" font-family="system-ui,sans-serif">90.6 / 100</text>
+  <text x="730" y="58" text-anchor="end" fill="#94a3b8" font-size="11" font-family="system-ui,sans-serif">Overall</text>
+
+  
+  <!-- CN0 Quality -->
+  <text x="125" y="71" text-anchor="end" fill="#94a3b8" font-size="12" font-family="system-ui,sans-serif">CN0 Quality</text>
+  <rect x="130" y="55" width="490" height="22" rx="4" fill="#1e293b"/>
+  <rect x="130" y="55" width="450" height="22" rx="4" fill="#22c55e"/>
+  <text x="586" y="70" fill="#22c55e" font-size="11" font-weight="600" font-family="system-ui,sans-serif">92%</text>
+
+  <!-- Availability -->
+  <text x="125" y="105" text-anchor="end" fill="#94a3b8" font-size="12" font-family="system-ui,sans-serif">Availability</text>
+  <rect x="130" y="89" width="490" height="22" rx="4" fill="#1e293b"/>
+  <rect x="130" y="89" width="436" height="22" rx="4" fill="#60a5fa"/>
+  <text x="572" y="104" fill="#60a5fa" font-size="11" font-weight="600" font-family="system-ui,sans-serif">89%</text>
+
+  <!-- Continuity -->
+  <text x="125" y="139" text-anchor="end" fill="#94a3b8" font-size="12" font-family="system-ui,sans-serif">Continuity</text>
+  <rect x="130" y="123" width="490" height="22" rx="4" fill="#1e293b"/>
+  <rect x="130" y="123" width="465" height="22" rx="4" fill="#a78bfa"/>
+  <text x="601" y="138" fill="#a78bfa" font-size="11" font-weight="600" font-family="system-ui,sans-serif">95%</text>
+
+  <!-- Stability -->
+  <text x="125" y="173" text-anchor="end" fill="#94a3b8" font-size="12" font-family="system-ui,sans-serif">Stability</text>
+  <rect x="130" y="157" width="490" height="22" rx="4" fill="#1e293b"/>
+  <rect x="130" y="157" width="431" height="22" rx="4" fill="#f97316"/>
+  <text x="567" y="172" fill="#f97316" font-size="11" font-weight="600" font-family="system-ui,sans-serif">88%</text>
+
+  <!-- Diversity -->
+  <text x="125" y="207" text-anchor="end" fill="#94a3b8" font-size="12" font-family="system-ui,sans-serif">Diversity</text>
+  <rect x="130" y="191" width="490" height="22" rx="4" fill="#1e293b"/>
+  <rect x="130" y="191" width="445" height="22" rx="4" fill="#34d399"/>
+  <text x="581" y="206" fill="#34d399" font-size="11" font-weight="600" font-family="system-ui,sans-serif">91%</text>
+
+</svg>
