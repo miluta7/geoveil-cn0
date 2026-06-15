@@ -5,6 +5,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.8] — 2026-06-15
+
+### Fixed
+- **Systematic spoofing false positives on clean reference stations** (`types.rs`):
+  `to_gps_time()` used the Julian Date formula which returns noon-based JD, but
+  compared it against `gps_epoch_jd = 2444244.5` (midnight-based). This caused a
+  systematic +43200 s (12 h) error in GPS Time of Week, making all Keplerian
+  satellite positions wildly wrong. Result: every BRDC-nav analysis flagged
+  ~60% of observed satellites as "unexpected", triggering `spoofing_detected=True`
+  on all clean data. Fix: subtract 0.5 from the JD before computing elapsed days
+  (`let jd = self.julian_date() - 0.5;`). GLONASS was unaffected (uses
+  `diff_seconds()` which cancels the bias). After fix: unexpected ratio drops from
+  ~63% to ~8% on ROMPOS reference stations; `confirmation_rate` rises from ~33%
+  to ~85%.
+
+### Changed
+- **Spoofing detector now requires corroboration** (`python.rs`): primary threshold
+  alone (unexpected ratio > 40%, count > 8) no longer fires; detection also requires
+  either a sustained anomaly event (>300 s) or an overwhelming ratio (>60%).
+  Eliminates residual false positives from short noise bursts while preserving true
+  detection sensitivity.
+
+### Added
+- `spoofing_unexpected_threshold` and `spoofing_min_unexpected_count` fields on
+  `AnalysisConfig` and `AnalysisResult`, allowing per-deployment tuning of
+  the spoofing detection sensitivity.
+
+---
+
+
 ## [0.3.7] — 2026-05-18
 
 ### Fixed
