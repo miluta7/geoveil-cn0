@@ -236,34 +236,30 @@ impl PyAnalysisResult {
     /// Note: Low CN0 std deviation is NOT a spoofing indicator - it's actually good data!
     #[getter]
     fn spoofing_detected(&self) -> bool {
-        // Check for unexpected satellites (only meaningful with ephemeris data)
         if let Some(vis) = &self.inner.visibility {
             let total_observed = vis.mean_observed;
+            if total_observed <= 0.0 { return false; }
+            
             let unexpected = vis.mean_unexpected;
+            let unexpected_ratio = unexpected / total_observed;
+            let ratio_threshold = self.inner.spoofing_unexpected_threshold;
+            let min_count = self.inner.spoofing_min_unexpected_count;
             
-            // Need significant unexpected satellites (>40%) AND more than 8 total
-            // AND high confidence - this is a very serious accusation!
-            let unexpected_ratio = if total_observed > 0.0 {
-                unexpected / total_observed
-            } else {
-                0.0
-            };
-            
-            // Very strict threshold - false positives for spoofing are very bad
-            let many_unexpected = unexpected_ratio > 0.40 && unexpected > 8.0;
-            
-            if many_unexpected {
-                return true;
+            // Primary indicator: ratio must exceed threshold with minimum count
+            if unexpected_ratio <= ratio_threshold || unexpected <= min_count {
+                return false;
             }
+            
+            // Corroboration: require sustained anomaly OR overwhelmingly unexpected
+            let has_sustained = vis.anomalies.iter().any(|a| {
+                a.anomaly_type == "unexpected_satellites" && a.duration_seconds > 300.0
+            });
+            let overwhelming = unexpected_ratio > 0.60 && unexpected > min_count;
+            
+            has_sustained || overwhelming
+        } else {
+            false
         }
-        
-        // Note: We REMOVED the "uniform CN0" check because:
-        // - Low std deviation over time indicates STABLE signals (good!)
-        // - Real spoofing detection requires cross-checking satellite geometry,
-        //   clock consistency, and other sophisticated methods
-        // - False positives for spoofing are extremely damaging
-        
-        false
     }
     
     /// Check if interference detected
@@ -888,6 +884,8 @@ pub struct PyAnalysisConfig {
     pub interference_threshold_db: f64,
     pub verbose: bool,
     pub nav_file: Option<String>,
+    pub spoofing_unexpected_threshold: f64,
+    pub spoofing_min_unexpected_count: f64,
 }
 
 #[cfg(feature = "python")]
@@ -908,7 +906,9 @@ impl PyAnalysisConfig {
         anomaly_sensitivity = 0.5,
         interference_threshold_db = 6.0,
         verbose = false,
-        nav_file = None
+        nav_file = None,
+        spoofing_unexpected_threshold = 0.40,
+        spoofing_min_unexpected_count = 8.0
     ))]
     fn new(
         min_elevation: f64,
@@ -926,6 +926,8 @@ impl PyAnalysisConfig {
         interference_threshold_db: f64,
         verbose: bool,
         nav_file: Option<String>,
+        spoofing_unexpected_threshold: f64,
+        spoofing_min_unexpected_count: f64,
     ) -> Self {
         let time_bin_seconds = time_bin_seconds.or(time_bin).unwrap_or(60);
         
@@ -950,6 +952,8 @@ impl PyAnalysisConfig {
             interference_threshold_db,
             verbose,
             nav_file,
+            spoofing_unexpected_threshold,
+            spoofing_min_unexpected_count,
         }
     }
 }
@@ -1007,6 +1011,8 @@ impl PyCN0Analyzer {
             interference_threshold_db: 6.0,
             verbose: false,
             nav_file: None,
+            spoofing_unexpected_threshold: 0.40,
+            spoofing_min_unexpected_count: 8.0,
         };
         
         Self {
@@ -1044,6 +1050,8 @@ impl PyCN0Analyzer {
             anomaly_threshold_low: self.config.anomaly_threshold_low,
             anomaly_threshold_high: self.config.anomaly_threshold_high,
             anomaly_threshold_critical: self.config.anomaly_threshold_critical,
+            spoofing_unexpected_threshold: self.config.spoofing_unexpected_threshold,
+            spoofing_min_unexpected_count: self.config.spoofing_min_unexpected_count,
         };
         
         let mut analyzer = CN0Analyzer::new(obs_data, config);
@@ -1084,6 +1092,8 @@ impl PyCN0Analyzer {
             anomaly_threshold_low: self.config.anomaly_threshold_low,
             anomaly_threshold_high: self.config.anomaly_threshold_high,
             anomaly_threshold_critical: self.config.anomaly_threshold_critical,
+            spoofing_unexpected_threshold: self.config.spoofing_unexpected_threshold,
+            spoofing_min_unexpected_count: self.config.spoofing_min_unexpected_count,
         };
         
         // Check if nav_file is set in config
@@ -1142,6 +1152,8 @@ impl PyCN0Analyzer {
             anomaly_threshold_low: self.config.anomaly_threshold_low,
             anomaly_threshold_high: self.config.anomaly_threshold_high,
             anomaly_threshold_critical: self.config.anomaly_threshold_critical,
+            spoofing_unexpected_threshold: self.config.spoofing_unexpected_threshold,
+            spoofing_min_unexpected_count: self.config.spoofing_min_unexpected_count,
         };
         
         let analyzer = CN0Analyzer::new(obs_data, config)
@@ -1259,6 +1271,8 @@ fn analyze_cn0(
         anomaly_threshold_low: 3.0,
         anomaly_threshold_high: 6.0,
         anomaly_threshold_critical: 10.0,
+        spoofing_unexpected_threshold: 0.40,
+        spoofing_min_unexpected_count: 8.0,
     };
     
     let mut analyzer = CN0Analyzer::new(obs_data, config);

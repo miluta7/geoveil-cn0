@@ -73,7 +73,7 @@ impl Epoch {
     }
     
     pub fn to_gps_time(&self) -> (i32, f64) {
-        let jd = self.julian_date();
+        let jd = self.julian_date() - 0.5;
         let gps_epoch_jd = 2444244.5;
         let days_since = jd - gps_epoch_jd;
         let week = (days_since / 7.0).floor() as i32;
@@ -427,6 +427,8 @@ pub struct AnalysisResult {
     pub anomalies: Vec<AnomalyEvent>,
     /// Visibility assessment (predicted vs observed satellites)
     pub visibility: Option<VisibilityData>,
+    pub spoofing_unexpected_threshold: f64,
+    pub spoofing_min_unexpected_count: f64,
 }
 
 /// Visibility assessment data
@@ -467,6 +469,8 @@ impl Default for AnalysisResult {
             heatmap: HeatmapData::default(),
             anomalies: Vec::new(),
             visibility: None,
+            spoofing_unexpected_threshold: 0.40,
+            spoofing_min_unexpected_count: 8.0,
         }
     }
 }
@@ -498,6 +502,8 @@ pub struct AnalysisConfig {
     pub anomaly_threshold_low: f64,
     pub anomaly_threshold_high: f64,
     pub anomaly_threshold_critical: f64,
+    pub spoofing_unexpected_threshold: f64,
+    pub spoofing_min_unexpected_count: f64,
 }
 
 impl Default for AnalysisConfig {
@@ -511,6 +517,8 @@ impl Default for AnalysisConfig {
             anomaly_threshold_low: 3.0,
             anomaly_threshold_high: 6.0,
             anomaly_threshold_critical: 10.0,
+            spoofing_unexpected_threshold: 0.40,
+            spoofing_min_unexpected_count: 8.0,
         }
     }
 }

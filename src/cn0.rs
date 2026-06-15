@@ -80,6 +80,10 @@ impl CN0Analyzer {
         // Store visibility data
         result.visibility = visibility_data;
         
+        // Propagate spoofing config thresholds to result
+        result.spoofing_unexpected_threshold = self.config.spoofing_unexpected_threshold;
+        result.spoofing_min_unexpected_count = self.config.spoofing_min_unexpected_count;
+        
         // Compute quality score
         result.quality_score = self.compute_quality_score(&observations, &result);
         
