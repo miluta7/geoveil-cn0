@@ -275,7 +275,7 @@ For large-scale batch processing with queueing, persistence, and a web dashboard
 ```bibtex
 @software{geoveil_cn0_2026,
   title   = {geoveil-cn0: High-performance GNSS signal quality analysis},
-  author  = {Miluta, Adrian},
+  author  = {Dulea-Flueras, Miluta},
   year    = {2026},
   version = {0.3.8},
   url     = {https://github.com/miluta7/geoveil-cn0},
