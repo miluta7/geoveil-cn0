@@ -73,7 +73,7 @@ SP3 precise orbits
 
 JSON export · Timeseries
 Skyplot data · Anomaly list
-Jupyter widget included
+Desktop GUI script included
 
 </td>
 </tr>
@@ -242,31 +242,15 @@ Letter grades: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · *
 
 ---
 
-## Jupyter Widget
+## Live Demo
 
-```python
-from geoveil_cn0.widget import CN0Widget
-
-widget = CN0Widget()
-widget.load_result(result)
-widget.show()   # Interactive Recharts visualization in Jupyter
-```
+**[batch.geoveil-rinex.eu](https://batch.geoveil-rinex.eu)** — the GeoVeil batch dashboard runs this library in production: CN0 quality scoring, threat detection, skyplots and heatmaps for every processed RINEX file, plus advanced multipath sessions (per-code MP RMS, cycle slips, SNR-residual wavelet spectra, Fresnel zones) and long-term trend monitoring on daily 30 s station data.
 
 ---
 
 ## Batch Processing
 
-```python
-from geoveil_cn0 import BatchAnalyzer
-
-batch = BatchAnalyzer(config, max_workers=8)
-results = batch.analyze_directory("/data/rinex/2026/")
-
-for path, result in results.items():
-    print(f"{path}: {result.quality_score:.1f}  {result.quality_grade}")
-```
-
-For large-scale batch processing with queueing, persistence, and a web dashboard, see the [GeoVeil Batch System](docs/index.html).
+For large-scale processing this library is wrapped by the GeoVeil batch system (FastAPI + Celery + MongoDB + MinIO + React dashboard): parallel workers, automatic BRDC ephemeris download, per-session analysis settings, WebSocket progress, and result persistence. See the [live demo](https://batch.geoveil-rinex.eu) above. For local scripting, `CN0Analyzer` is stateless — instantiate one per thread and process files with a `ThreadPoolExecutor`.
 
 ---
 

@@ -190,7 +190,7 @@ print(gcn0.VERSION)
 # Create analyzer with config
 config = gcn0.AnalysisConfig(
     min_elevation=5.0,      # degrees
-    time_bin=60,            # seconds
+    time_bin_seconds=60,    # statistics bin (seconds)
     detect_anomalies=True,
     anomaly_sensitivity=0.3,
     interference_threshold_db=8.0,

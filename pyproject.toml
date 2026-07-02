@@ -45,7 +45,7 @@ Changelog = "https://github.com/miluta7/geoveil-cn0/releases"
 
 [project.optional-dependencies]
 dev = ["pytest", "numpy", "pandas", "plotly"]
-notebook = ["ipywidgets", "jupyter", "plotly", "pandas", "numpy"]
+gui = ["ipywidgets", "plotly", "pandas", "numpy"]
 
 [tool.maturin]
 features = ["python"]
