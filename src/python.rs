@@ -57,26 +57,26 @@ impl PyAnalysisResult {
     fn to_json(&self) -> String {
         self.inner.to_json()
     }
-    
+
     /// Convert to pretty JSON string
     fn to_json_pretty(&self) -> String {
         self.inner.to_json_pretty()
     }
-    
+
     // ============ File Info ============
-    
+
     /// Get filename
     #[getter]
     fn filename(&self) -> String {
         self.inner.file_info.filename.clone()
     }
-    
+
     /// Get RINEX version (placeholder)
     #[getter]
     fn rinex_version(&self) -> String {
         "3.05".to_string()  // TODO: extract from RINEX header
     }
-    
+
     /// Get station name (marker name)
     #[getter]
     fn station_name(&self) -> Option<String> {
@@ -87,99 +87,99 @@ impl PyAnalysisResult {
             Some(name.clone())
         }
     }
-    
+
     /// Get receiver type
     #[getter]
     fn receiver_type(&self) -> String {
         self.inner.file_info.receiver_type.clone()
     }
-    
+
     /// Get antenna type
     #[getter]
     fn antenna_type(&self) -> String {
         self.inner.file_info.antenna_type.clone()
     }
-    
+
     /// Get start time
     #[getter]
     fn start_time(&self) -> String {
         self.inner.file_info.start_time.clone()
     }
-    
+
     /// Get end time
     #[getter]
     fn end_time(&self) -> String {
         self.inner.file_info.end_time.clone()
     }
-    
+
     /// Get duration in hours
     #[getter]
     fn duration_hours(&self) -> f64 {
         self.inner.file_info.duration_hours
     }
-    
+
     /// Get observation interval
     #[getter]
     fn interval(&self) -> f64 {
         self.inner.file_info.interval
     }
-    
+
     // ============ Summary Statistics ============
-    
+
     /// Get total observations
     #[getter]
     fn total_observations(&self) -> usize {
         self.inner.summary.total_observations
     }
-    
+
     /// Get total satellites
     #[getter]
     fn total_satellites(&self) -> usize {
         self.inner.summary.total_satellites
     }
-    
+
     /// Get total epochs (alias: epoch_count)
     #[getter]
     fn total_epochs(&self) -> usize {
         self.inner.summary.total_epochs
     }
-    
+
     /// Get epoch count (alias for total_epochs)
     #[getter]
     fn epoch_count(&self) -> usize {
         self.inner.summary.total_epochs
     }
-    
+
     /// Get constellations observed
     #[getter]
     fn constellations(&self) -> Vec<String> {
         self.inner.summary.systems_observed.clone()
     }
-    
+
     /// Get mean CN0 (alias: avg_cn0)
     #[getter]
     fn mean_cn0(&self) -> f64 {
         self.inner.summary.mean_cn0
     }
-    
+
     /// Get average CN0 (alias for mean_cn0)
     #[getter]
     fn avg_cn0(&self) -> f64 {
         self.inner.summary.mean_cn0
     }
-    
+
     /// Get min CN0
     #[getter]
     fn min_cn0(&self) -> f64 {
         self.inner.summary.min_cn0
     }
-    
+
     /// Get max CN0
     #[getter]
     fn max_cn0(&self) -> f64 {
         self.inner.summary.max_cn0
     }
-    
+
     /// Get CN0 standard deviation (computed from timeseries)
     #[getter]
     fn cn0_std_dev(&self) -> f64 {
@@ -191,21 +191,21 @@ impl PyAnalysisResult {
         let variance = values.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / values.len() as f64;
         variance.sqrt()
     }
-    
+
     // ============ Anomaly Detection ============
-    
+
     /// Get anomaly count
     #[getter]
     fn anomaly_count(&self) -> usize {
         self.inner.summary.anomaly_count
     }
-    
+
     /// Get critical anomaly count
     #[getter]
     fn critical_count(&self) -> usize {
         self.inner.summary.critical_count
     }
-    
+
     /// Check if jamming detected
     /// Real jamming causes: severe CN0 drops (>10dB) across MULTIPLE satellites simultaneously
     /// AND low average CN0 (<35 dB-Hz) or high percentage of critical anomalies
@@ -214,21 +214,21 @@ impl PyAnalysisResult {
         // Jamming evidence requires multiple factors:
         // 1. Low average CN0 (suggests wideband interference)
         let low_cn0 = self.inner.summary.mean_cn0 < 35.0;
-        
+
         // 2. High ratio of critical anomalies (>5% of epochs)
         let epoch_count = self.inner.timeseries.timestamps.len().max(1);
         let critical_ratio = self.inner.summary.critical_count as f64 / epoch_count as f64;
         let many_critical = critical_ratio > 0.05;
-        
+
         // 3. Multi-system critical anomalies (jamming affects all constellations)
         let multi_system_critical = self.inner.anomalies.iter()
             .filter(|a| a.severity == "critical")
             .any(|a| a.affected_systems.len() > 1);
-        
+
         // Require: (low CN0 AND many critical) OR (multi-system critical AND many critical)
         (low_cn0 && many_critical) || (multi_system_critical && many_critical)
     }
-    
+
     /// Check if spoofing detected
     /// Real spoofing indicators:
     /// 1. Many unexpected satellites (>40% not in ephemeris) with GOOD signals
@@ -239,29 +239,29 @@ impl PyAnalysisResult {
         if let Some(vis) = &self.inner.visibility {
             let total_observed = vis.mean_observed;
             if total_observed <= 0.0 { return false; }
-            
+
             let unexpected = vis.mean_unexpected;
             let unexpected_ratio = unexpected / total_observed;
             let ratio_threshold = self.inner.spoofing_unexpected_threshold;
             let min_count = self.inner.spoofing_min_unexpected_count;
-            
+
             // Primary indicator: ratio must exceed threshold with minimum count
             if unexpected_ratio <= ratio_threshold || unexpected <= min_count {
                 return false;
             }
-            
+
             // Corroboration: require sustained anomaly OR overwhelmingly unexpected
             let has_sustained = vis.anomalies.iter().any(|a| {
                 a.anomaly_type == "unexpected_satellites" && a.duration_seconds > 300.0
             });
             let overwhelming = unexpected_ratio > 0.60 && unexpected > min_count;
-            
+
             has_sustained || overwhelming
         } else {
             false
         }
     }
-    
+
     /// Check if interference detected
     /// Requires meaningful anomaly count - not just isolated events
     #[getter]
@@ -269,11 +269,11 @@ impl PyAnalysisResult {
         // Require at least 3 anomalies AND they must affect >1% of epochs
         let epoch_count = self.inner.timeseries.timestamps.len().max(1);
         let anomaly_ratio = self.inner.summary.anomaly_count as f64 / epoch_count as f64;
-        
+
         // Need at least 3 anomalies AND >1% of epochs affected
         self.inner.summary.anomaly_count >= 3 && anomaly_ratio > 0.01
     }
-    
+
     /// Get anomalies list
     fn get_anomalies(&self) -> Vec<HashMap<String, String>> {
         self.inner.anomalies.iter().map(|a| {
@@ -289,14 +289,14 @@ impl PyAnalysisResult {
             m
         }).collect()
     }
-    
+
     // ============ Quality Score ============
-    
+
     /// Get quality score object with all metrics
     #[getter]
     fn quality_score(&self) -> PyQualityScore {
         let qs = &self.inner.quality_score;
-        
+
         // Compute proper AVAILABILITY from constellation stats
         // This is satellites observed / expected, capped at 100%
         let availability = if self.inner.constellation_stats.is_empty() {
@@ -314,7 +314,7 @@ impl PyAnalysisResult {
                 50.0
             }
         };
-        
+
         // Compute STABILITY from CN0 standard deviation
         // Lower std dev = more stable signal = higher score
         // Typical good: 3-5 dB-Hz std, poor: >8 dB-Hz std
@@ -328,7 +328,7 @@ impl PyAnalysisResult {
         };
         // Score: 100 at 2dB std, 0 at 10dB std
         let stability = ((10.0 - avg_std) / 8.0 * 100.0).clamp(0.0, 100.0);
-        
+
         // CONTINUITY: based on data gaps and cycle slips (lower = better)
         let total_gaps: usize = self.inner.constellation_stats.values()
             .map(|cs| cs.data_gaps)
@@ -337,16 +337,16 @@ impl PyAnalysisResult {
         // Score: 100 if no gaps, decreases with more gaps
         let gap_ratio = total_gaps as f64 / (total_epochs as f64 * self.inner.constellation_stats.len().max(1) as f64);
         let continuity = ((1.0 - gap_ratio.min(1.0)) * 100.0).clamp(0.0, 100.0);
-        
+
         // DIVERSITY: number of systems observed (4 systems = 100%)
         let diversity = (self.inner.summary.systems_observed.len() as f64 / 4.0 * 100.0).min(100.0);
-        
+
         // CN0 QUALITY: from the computed cn0_score
         let cn0_quality = qs.cn0_score;
-        
+
         // OVERALL: weighted average
         let overall = cn0_quality * 0.30 + availability * 0.25 + continuity * 0.20 + stability * 0.15 + diversity * 0.10;
-        
+
         // Rating
         let rating = if overall >= 90.0 {
             "A - Excellent".to_string()
@@ -359,7 +359,7 @@ impl PyAnalysisResult {
         } else {
             "F - Very Poor".to_string()
         };
-        
+
         PyQualityScore {
             overall,
             rating,
@@ -371,27 +371,27 @@ impl PyAnalysisResult {
             post_processing_suitable: overall >= 65.0 && cn0_quality >= 60.0,
         }
     }
-    
+
     /// Get quality score value (alias for overall)
     #[getter]
     fn score(&self) -> f64 {
         self.inner.quality_score.overall
     }
-    
+
     /// Get quality grade
     #[getter]
     fn quality_grade(&self) -> String {
         self.inner.quality_score.grade.clone()
     }
-    
+
     /// Get summary interpretation
     #[getter]
     fn summary(&self) -> String {
         self.inner.quality_score.interpretation.clone()
     }
-    
+
     // ============ Constellation Data ============
-    
+
     /// Get constellation summary by name
     fn get_constellation_summary(&self, name: &str) -> Option<HashMap<String, String>> {
         self.inner.constellation_stats.get(name).map(|cs| {
@@ -414,72 +414,72 @@ impl PyAnalysisResult {
             m
         })
     }
-    
+
     /// Get systems observed
     fn get_systems(&self) -> Vec<String> {
         self.inner.summary.systems_observed.clone()
     }
-    
+
     // ============ Timeseries Data ============
-    
+
     /// Get timeseries data as dict
     fn get_timeseries_data(&self) -> HashMap<String, Vec<f64>> {
         let mut data = HashMap::new();
-        
+
         // Convert timestamps to hours since start
         let hours: Vec<f64> = (0..self.inner.timeseries.timestamps.len())
             .map(|i| i as f64 * self.inner.file_info.interval / 3600.0)
             .collect();
         data.insert("hours".to_string(), hours);
         data.insert("mean_cn0".to_string(), self.inner.timeseries.mean_cn0.clone());
-        data.insert("satellite_count".to_string(), 
+        data.insert("satellite_count".to_string(),
             self.inner.timeseries.satellite_count.iter().map(|x| *x as f64).collect());
-        
+
         data
     }
-    
+
     /// Get timeseries timestamps
     fn get_timestamps(&self) -> Vec<String> {
         self.inner.timeseries.timestamps.clone()
     }
-    
+
     /// Get timeseries mean CN0 values
     fn get_timeseries_cn0(&self) -> Vec<f64> {
         self.inner.timeseries.mean_cn0.clone()
     }
-    
+
     // ============ Skyplot Data ============
-    
+
     /// Get skyplot data as list of trace dicts
     fn get_skyplot_data(&self) -> Vec<HashMap<String, String>> {
         self.inner.skyplot.traces.iter().map(|t| {
             let mut m = HashMap::new();
             m.insert("satellite".to_string(), t.satellite.clone());
             m.insert("system".to_string(), t.system.clone());
-            m.insert("azimuths".to_string(), 
+            m.insert("azimuths".to_string(),
                 t.points.iter().map(|p| format!("{:.1}", p.azimuth)).collect::<Vec<_>>().join(","));
-            m.insert("elevations".to_string(), 
+            m.insert("elevations".to_string(),
                 t.points.iter().map(|p| format!("{:.1}", p.elevation)).collect::<Vec<_>>().join(","));
-            m.insert("cn0_values".to_string(), 
+            m.insert("cn0_values".to_string(),
                 t.points.iter().map(|p| format!("{:.1}", p.cn0)).collect::<Vec<_>>().join(","));
             m
         }).collect()
     }
-    
+
     /// Get skyplot coverage percent
     #[getter]
     fn skyplot_coverage(&self) -> f64 {
         self.inner.skyplot.coverage_percent
     }
-    
+
     /// Get number of skyplot traces
     #[getter]
     fn skyplot_trace_count(&self) -> usize {
         self.inner.skyplot.traces.len()
     }
-    
+
     // ============ Visibility Data ============
-    
+
     /// Get visibility prediction source
     #[getter]
     fn visibility_prediction_source(&self) -> String {
@@ -487,7 +487,7 @@ impl PyAnalysisResult {
             .map(|v| v.prediction_source.clone())
             .unwrap_or_else(|| "None".to_string())
     }
-    
+
     /// Get visibility confirmation rate
     #[getter]
     fn visibility_confirmation_rate(&self) -> f64 {
@@ -495,51 +495,51 @@ impl PyAnalysisResult {
             .map(|v| v.confirmation_rate)
             .unwrap_or(0.0)
     }
-    
+
     /// Get mean predicted satellites
     #[getter]
     fn visibility_mean_predicted(&self) -> f64 {
         self.inner.visibility.as_ref().map(|v| v.mean_predicted).unwrap_or(0.0)
     }
-    
+
     /// Get mean observed satellites
     #[getter]
     fn visibility_mean_observed(&self) -> f64 {
         self.inner.visibility.as_ref().map(|v| v.mean_observed).unwrap_or(0.0)
     }
-    
+
     /// Get mean missing satellites per epoch
     #[getter]
     fn visibility_mean_missing(&self) -> f64 {
         self.inner.visibility.as_ref().map(|v| v.mean_missing).unwrap_or(0.0)
     }
-    
+
     /// Get mean unexpected satellites per epoch (seen but not predicted)
     #[getter]
     fn visibility_mean_unexpected(&self) -> f64 {
         self.inner.visibility.as_ref().map(|v| v.mean_unexpected).unwrap_or(0.0)
     }
-    
+
     /// Get frequently missing satellites (possible obstructions)
     fn get_frequently_missing_satellites(&self) -> Vec<String> {
         self.inner.visibility.as_ref()
             .map(|v| v.frequently_missing.clone())
             .unwrap_or_default()
     }
-    
+
     /// Get frequently unexpected satellites (possible spoofing)
     fn get_frequently_unexpected_satellites(&self) -> Vec<String> {
         self.inner.visibility.as_ref()
             .map(|v| v.frequently_unexpected.clone())
             .unwrap_or_default()
     }
-    
+
     /// Check if visibility prediction is available
     #[getter]
     fn has_visibility_prediction(&self) -> bool {
         self.inner.visibility.as_ref().map(|v| v.has_prediction).unwrap_or(false)
     }
-    
+
     /// Get visibility anomaly count
     #[getter]
     fn visibility_anomaly_count(&self) -> usize {
@@ -547,25 +547,25 @@ impl PyAnalysisResult {
             .map(|v| v.anomalies.len())
             .unwrap_or(0)
     }
-    
+
     /// Get visibility anomaly types
     fn get_visibility_anomaly_types(&self) -> Vec<String> {
         self.inner.visibility.as_ref()
             .map(|v| v.anomalies.iter().map(|a| a.anomaly_type.clone()).collect())
             .unwrap_or_default()
     }
-    
+
     /// Get visibility anomaly descriptions
     fn get_visibility_anomaly_descriptions(&self) -> Vec<String> {
         self.inner.visibility.as_ref()
             .map(|v| v.anomalies.iter().map(|a| a.description.clone()).collect())
             .unwrap_or_default()
     }
-    
+
     /// Get detailed visibility debug info per system
     fn visibility_debug(&self) -> HashMap<String, HashMap<String, String>> {
         let mut result: HashMap<String, HashMap<String, String>> = HashMap::new();
-        
+
         if let Some(vis) = &self.inner.visibility {
             for (sys_name, sys_stats) in &vis.by_system {
                 let mut info: HashMap<String, String> = HashMap::new();
@@ -578,7 +578,7 @@ impl PyAnalysisResult {
                 info.insert("unexpected_sats".to_string(), sys_stats.unexpected_satellites.join(", "));
                 result.insert(sys_name.clone(), info);
             }
-            
+
             // Add overall info
             let mut overall: HashMap<String, String> = HashMap::new();
             overall.insert("source".to_string(), vis.prediction_source.clone());
@@ -589,52 +589,52 @@ impl PyAnalysisResult {
             overall.insert("confirmation_rate".to_string(), format!("{:.1}%", vis.confirmation_rate));
             result.insert("_overall".to_string(), overall);
         }
-        
+
         result
     }
-    
+
     /// Get timeseries mean CN0 values
     fn get_mean_cn0_series(&self) -> Vec<f64> {
         self.inner.timeseries.mean_cn0.clone()
     }
-    
+
     /// Get timeseries satellite counts
     fn get_satellite_count_series(&self) -> Vec<usize> {
         self.inner.timeseries.satellite_count.clone()
     }
-    
+
     /// Get satellite IDs
     fn get_satellite_ids(&self) -> Vec<String> {
         self.inner.satellite_stats.keys().cloned().collect()
     }
-    
+
     /// Get anomaly timestamps
     fn get_anomaly_timestamps(&self) -> Vec<String> {
         self.inner.anomalies.iter().map(|a| a.timestamp.clone()).collect()
     }
-    
+
     /// Get anomaly severities
     fn get_anomaly_severities(&self) -> Vec<String> {
         self.inner.anomalies.iter().map(|a| a.severity.clone()).collect()
     }
-    
+
     /// Get anomaly CN0 drops
     fn get_anomaly_cn0_drops(&self) -> Vec<f64> {
         self.inner.anomalies.iter().map(|a| a.cn0_drop).collect()
     }
-    
+
     /// Get receiver latitude
     #[getter]
     fn position_lat(&self) -> f64 {
         self.inner.file_info.position_lat
     }
-    
+
     /// Get receiver longitude
     #[getter]
     fn position_lon(&self) -> f64 {
         self.inner.file_info.position_lon
     }
-    
+
     /// String representation
     fn __repr__(&self) -> String {
         format!(
@@ -662,37 +662,37 @@ impl PyNavigationData {
     fn has_data(&self) -> bool {
         self.inner.has_data()
     }
-    
+
     /// Get satellite count
     #[getter]
     fn satellite_count(&self) -> usize {
         self.inner.satellite_count()
     }
-    
+
     /// Get GPS satellite count
     #[getter]
     fn gps_count(&self) -> usize {
         self.inner.gps_ephemeris.len()
     }
-    
+
     /// Get GLONASS satellite count
     #[getter]
     fn glonass_count(&self) -> usize {
         self.inner.glonass_ephemeris.len()
     }
-    
+
     /// Get Galileo satellite count
     #[getter]
     fn galileo_count(&self) -> usize {
         self.inner.galileo_ephemeris.len()
     }
-    
+
     /// Get BeiDou satellite count
     #[getter]
     fn beidou_count(&self) -> usize {
         self.inner.beidou_ephemeris.len()
     }
-    
+
     fn __repr__(&self) -> String {
         format!(
             "NavigationData(GPS={}, GLONASS={}, Galileo={}, BeiDou={})",
@@ -719,49 +719,49 @@ impl PyRinexObsData {
     fn num_epochs(&self) -> usize {
         self.inner.num_epochs()
     }
-    
+
     /// Get number of satellites
     #[getter]
     fn num_satellites(&self) -> usize {
         self.inner.num_satellites()
     }
-    
+
     /// Get RINEX version
     #[getter]
     fn version(&self) -> f64 {
         self.inner.version
     }
-    
+
     /// Get marker name
     #[getter]
     fn marker_name(&self) -> String {
         self.inner.marker_name.clone()
     }
-    
+
     /// Get receiver type
     #[getter]
     fn receiver_type(&self) -> String {
         self.inner.receiver_type.clone()
     }
-    
+
     /// Get interval
     #[getter]
     fn interval(&self) -> f64 {
         self.inner.interval
     }
-    
+
     /// Get satellites grouped by constellation system
     /// Returns dict like {'G': ['G01', 'G02', ...], 'R': ['R01', ...], ...}
     fn satellites_by_system(&self) -> HashMap<String, Vec<String>> {
         self.inner.satellites_by_system()
     }
-    
+
     /// Get observation types by constellation system
     /// Returns dict like {'G': ['C1C', 'L1C', 'S1C', ...], 'C': ['C1I', 'L1I', 'S1I', ...], ...}
     fn obs_types_by_system(&self) -> HashMap<String, Vec<String>> {
         self.inner.obs_types.clone()
     }
-    
+
     /// Check if S (SNR) observations exist for each system
     fn snr_availability(&self) -> HashMap<String, bool> {
         let mut result = HashMap::new();
@@ -771,21 +771,21 @@ impl PyRinexObsData {
         }
         result
     }
-    
+
     /// Get detailed debug info about parsing
     fn debug_info(&self) -> HashMap<String, String> {
         let mut info = HashMap::new();
         info.insert("version".to_string(), format!("{:.2}", self.inner.version));
         info.insert("num_epochs".to_string(), self.inner.num_epochs().to_string());
         info.insert("num_satellites".to_string(), self.inner.num_satellites().to_string());
-        
+
         // Count satellites per system
         let sats_by_sys = self.inner.satellites_by_system();
         for (sys, sats) in &sats_by_sys {
             info.insert(format!("{}_satellites", sys), sats.len().to_string());
             info.insert(format!("{}_sat_list", sys), sats.join(","));
         }
-        
+
         // Count obs types per system
         for (sys, types) in &self.inner.obs_types {
             info.insert(format!("{}_obs_types_count", sys), types.len().to_string());
@@ -793,26 +793,26 @@ impl PyRinexObsData {
             let snr_types: Vec<&String> = types.iter().filter(|t| t.starts_with('S')).collect();
             info.insert(format!("{}_snr_types", sys), snr_types.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(","));
         }
-        
+
         info
     }
-    
+
     /// Get SNR statistics per satellite
     /// Returns HashMap with satellite ID as key, stats dict as value
     fn snr_stats_by_satellite(&self) -> HashMap<String, HashMap<String, f64>> {
         let mut result: HashMap<String, HashMap<String, f64>> = HashMap::new();
-        
+
         // Count SNR observations per satellite
         let mut sat_snr_values: HashMap<String, Vec<f64>> = HashMap::new();
         let mut sat_obs_count: HashMap<String, usize> = HashMap::new();
-        
+
         for epoch in &self.inner.epochs {
             for (sat_id, sat_obs) in &epoch.observations {
                 for (obs_code, obs_val) in &sat_obs.values {
                     if obs_code.starts_with('S') {
                         // Count all observations
                         *sat_obs_count.entry(sat_id.clone()).or_insert(0) += 1;
-                        
+
                         // Track valid (non-zero) SNR values
                         if obs_val.value > 0.0 && obs_val.value < 100.0 {
                             sat_snr_values.entry(sat_id.clone())
@@ -823,23 +823,23 @@ impl PyRinexObsData {
                 }
             }
         }
-        
+
         // Build result - use all satellites we've seen
         let all_sats: Vec<String> = sat_obs_count.keys().cloned().collect();
-        
+
         for sat_id in all_sats {
             let mut stats: HashMap<String, f64> = HashMap::new();
             let obs_count = *sat_obs_count.get(&sat_id).unwrap_or(&0) as f64;
             let valid_values = sat_snr_values.get(&sat_id);
-            
+
             stats.insert("obs_count".to_string(), obs_count);
-            
+
             if let Some(values) = valid_values {
                 let valid_count = values.len() as f64;
-                let mean_snr = if values.is_empty() { 
-                    0.0 
-                } else { 
-                    values.iter().sum::<f64>() / valid_count 
+                let mean_snr = if values.is_empty() {
+                    0.0
+                } else {
+                    values.iter().sum::<f64>() / valid_count
                 };
                 stats.insert("valid_count".to_string(), valid_count);
                 stats.insert("mean_snr".to_string(), mean_snr);
@@ -847,13 +847,13 @@ impl PyRinexObsData {
                 stats.insert("valid_count".to_string(), 0.0);
                 stats.insert("mean_snr".to_string(), 0.0);
             }
-            
+
             result.insert(sat_id, stats);
         }
-        
+
         result
     }
-    
+
     fn __repr__(&self) -> String {
         format!(
             "RinexObsData(version={:.2}, epochs={}, satellites={})",
@@ -930,14 +930,14 @@ impl PyAnalysisConfig {
         spoofing_min_unexpected_count: f64,
     ) -> Self {
         let time_bin_seconds = time_bin_seconds.or(time_bin).unwrap_or(60);
-        
+
         // Convert sensitivity (0-1) to thresholds
         // Higher sensitivity = lower thresholds = more detections
         let anomaly_threshold_low = anomaly_threshold_low * (1.0 - anomaly_sensitivity * 0.5);
         let anomaly_threshold_high = anomaly_threshold_high * (1.0 - anomaly_sensitivity * 0.5);
         // Use interference_threshold_db as anomaly_threshold_critical
         let anomaly_threshold_critical = interference_threshold_db;
-        
+
         Self {
             min_elevation,
             min_cn0,
@@ -982,7 +982,7 @@ impl PyCN0Analyzer {
             nav_data: None,
         }
     }
-    
+
     /// Alternative constructor from observation data (legacy API)
     #[staticmethod]
     #[pyo3(signature = (obs_data, min_elevation=5.0, time_bin_seconds=60, systems=None))]
@@ -996,7 +996,7 @@ impl PyCN0Analyzer {
             .map(|s| s.iter().filter_map(|c| c.chars().next()).collect::<Vec<char>>())
             .unwrap_or_else(|| vec!['G', 'R', 'E', 'C']);
         let systems_str: Vec<String> = systems_vec.iter().map(|c| c.to_string()).collect();
-        
+
         let config = PyAnalysisConfig {
             min_elevation,
             min_cn0: 0.0,
@@ -1014,19 +1014,19 @@ impl PyCN0Analyzer {
             spoofing_unexpected_threshold: 0.40,
             spoofing_min_unexpected_count: 8.0,
         };
-        
+
         Self {
             config,
             obs_data: Some(obs_data.inner.clone()),
             nav_data: None,
         }
     }
-    
+
     /// Set navigation data for satellite position computation (old API)
     fn set_navigation(&mut self, nav_data: &PyNavigationData) {
         self.nav_data = Some(nav_data.inner.clone());
     }
-    
+
     /// Run CN0 analysis (old API - requires obs_data set via from_obs)
     fn analyze(&self) -> PyResult<PyAnalysisResult> {
         let obs_data = self.obs_data.clone().ok_or_else(|| {
@@ -1034,13 +1034,13 @@ impl PyCN0Analyzer {
                 "No observation data. Use analyze_file() or CN0Analyzer.from_obs()"
             )
         })?;
-        
+
         let systems: Vec<char> = self.config.systems.clone()
             .unwrap_or_else(|| vec!["G".to_string(), "R".to_string(), "E".to_string(), "C".to_string()])
             .iter()
             .filter_map(|s| s.chars().next())
             .collect();
-        
+
         let config = AnalysisConfig {
             min_elevation: self.config.min_elevation,
             min_cn0: self.config.min_cn0,
@@ -1053,36 +1053,25 @@ impl PyCN0Analyzer {
             spoofing_unexpected_threshold: self.config.spoofing_unexpected_threshold,
             spoofing_min_unexpected_count: self.config.spoofing_min_unexpected_count,
         };
-        
+
         let mut analyzer = CN0Analyzer::new(obs_data, config);
-        
+
         if let Some(nav) = &self.nav_data {
             analyzer = analyzer.with_navigation(nav.clone());
         }
-        
+
         let result = analyzer.analyze();
         Ok(PyAnalysisResult { inner: result })
     }
-    
+
     /// Analyze RINEX observation file from path (new API)
-    fn analyze_file(&self, obs_path: &str) -> PyResult<PyAnalysisResult> {
-        let content = std::fs::read(obs_path)
-            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-        
-        let filename = std::path::Path::new(obs_path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("unknown.obs");
-        
-        let obs_data = parse_rinex_obs(&content, filename)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-        
+    fn analyze_file(&self, py: Python<'_>, obs_path: &str) -> PyResult<PyAnalysisResult> {
         let systems: Vec<char> = self.config.systems.clone()
             .unwrap_or_else(|| vec!["G".to_string(), "R".to_string(), "E".to_string(), "C".to_string()])
             .iter()
             .filter_map(|s| s.chars().next())
             .collect();
-        
+
         let config = AnalysisConfig {
             min_elevation: self.config.min_elevation,
             min_cn0: self.config.min_cn0,
@@ -1095,54 +1084,55 @@ impl PyCN0Analyzer {
             spoofing_unexpected_threshold: self.config.spoofing_unexpected_threshold,
             spoofing_min_unexpected_count: self.config.spoofing_min_unexpected_count,
         };
-        
-        // Check if nav_file is set in config
-        let nav_data = if let Some(nav_path) = &self.config.nav_file {
-            let nav_content = std::fs::read(nav_path)
-                .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-            Some(parse_navigation(&nav_content)
-                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?)
-        } else {
-            None
-        };
-        
-        let mut analyzer = CN0Analyzer::new(obs_data, config);
-        
-        if let Some(nav) = nav_data {
-            analyzer = analyzer.with_navigation(nav);
-        }
-        
-        let result = analyzer.analyze();
+
+        let obs_path = obs_path.to_string();
+        let nav_path = self.config.nav_file.clone();
+
+        // Parsing + analysis are pure Rust: release the GIL so batch
+        // workers can process files in parallel threads
+        let result = py
+            .allow_threads(move || -> Result<_, (bool, String)> {
+                let content =
+                    std::fs::read(&obs_path).map_err(|e| (true, e.to_string()))?;
+                let filename = std::path::Path::new(&obs_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown.obs");
+                let obs_data =
+                    parse_rinex_obs(&content, filename).map_err(|e| (false, e))?;
+
+                let nav_data = if let Some(np) = &nav_path {
+                    let nav_content =
+                        std::fs::read(np).map_err(|e| (true, e.to_string()))?;
+                    Some(parse_navigation(&nav_content).map_err(|e| (false, e))?)
+                } else {
+                    None
+                };
+
+                let mut analyzer = CN0Analyzer::new(obs_data, config);
+                if let Some(nav) = nav_data {
+                    analyzer = analyzer.with_navigation(nav);
+                }
+                Ok(analyzer.analyze())
+            })
+            .map_err(|(io, msg)| {
+                if io {
+                    pyo3::exceptions::PyIOError::new_err(msg)
+                } else {
+                    pyo3::exceptions::PyValueError::new_err(msg)
+                }
+            })?;
         Ok(PyAnalysisResult { inner: result })
     }
-    
+
     /// Analyze with separate navigation file (new API)
-    fn analyze_with_nav(&self, obs_path: &str, nav_path: &str) -> PyResult<PyAnalysisResult> {
-        // Read observation file
-        let obs_content = std::fs::read(obs_path)
-            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-        
-        let filename = std::path::Path::new(obs_path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("unknown.obs");
-        
-        let obs_data = parse_rinex_obs(&obs_content, filename)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-        
-        // Read navigation file
-        let nav_content = std::fs::read(nav_path)
-            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-        
-        let nav_data = parse_navigation(&nav_content)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-        
+    fn analyze_with_nav(&self, py: Python<'_>, obs_path: &str, nav_path: &str) -> PyResult<PyAnalysisResult> {
         let systems: Vec<char> = self.config.systems.clone()
             .unwrap_or_else(|| vec!["G".to_string(), "R".to_string(), "E".to_string(), "C".to_string()])
             .iter()
             .filter_map(|s| s.chars().next())
             .collect();
-        
+
         let config = AnalysisConfig {
             min_elevation: self.config.min_elevation,
             min_cn0: self.config.min_cn0,
@@ -1155,11 +1145,36 @@ impl PyCN0Analyzer {
             spoofing_unexpected_threshold: self.config.spoofing_unexpected_threshold,
             spoofing_min_unexpected_count: self.config.spoofing_min_unexpected_count,
         };
-        
-        let analyzer = CN0Analyzer::new(obs_data, config)
-            .with_navigation(nav_data);
-        
-        let result = analyzer.analyze();
+
+        let obs_path = obs_path.to_string();
+        let nav_path = nav_path.to_string();
+
+        // Parsing + analysis are pure Rust: release the GIL for parallelism
+        let result = py
+            .allow_threads(move || -> Result<_, (bool, String)> {
+                let obs_content =
+                    std::fs::read(&obs_path).map_err(|e| (true, e.to_string()))?;
+                let filename = std::path::Path::new(&obs_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown.obs");
+                let obs_data =
+                    parse_rinex_obs(&obs_content, filename).map_err(|e| (false, e))?;
+
+                let nav_content =
+                    std::fs::read(&nav_path).map_err(|e| (true, e.to_string()))?;
+                let nav_data = parse_navigation(&nav_content).map_err(|e| (false, e))?;
+
+                let analyzer = CN0Analyzer::new(obs_data, config).with_navigation(nav_data);
+                Ok(analyzer.analyze())
+            })
+            .map_err(|(io, msg)| {
+                if io {
+                    pyo3::exceptions::PyIOError::new_err(msg)
+                } else {
+                    pyo3::exceptions::PyValueError::new_err(msg)
+                }
+            })?;
         Ok(PyAnalysisResult { inner: result })
     }
 }
@@ -1189,12 +1204,12 @@ fn parse_rinex(data: &[u8], filename: &str) -> PyResult<PyRinexObsData> {
 fn read_rinex_obs(path: &str) -> PyResult<PyRinexObsData> {
     let content = std::fs::read(path)
         .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-    
+
     let filename = std::path::Path::new(path)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("unknown.obs");
-    
+
     match parse_rinex_obs(&content, filename) {
         Ok(obs) => Ok(PyRinexObsData { inner: obs }),
         Err(e) => Err(pyo3::exceptions::PyValueError::new_err(e)),
@@ -1217,7 +1232,7 @@ fn read_navigation_bytes(data: &[u8]) -> PyResult<PyNavigationData> {
 fn read_navigation(path: &str) -> PyResult<PyNavigationData> {
     let content = std::fs::read(path)
         .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-    
+
     match parse_navigation(&content) {
         Ok(nav) => Ok(PyNavigationData { inner: nav }),
         Err(e) => Err(pyo3::exceptions::PyValueError::new_err(e)),
@@ -1237,31 +1252,31 @@ fn analyze_cn0(
     // Read observation file
     let obs_content = std::fs::read(obs_path)
         .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Cannot read obs file: {}", e)))?;
-    
+
     let filename = std::path::Path::new(obs_path)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("unknown.obs");
-    
+
     let obs_data = parse_rinex_obs(&obs_content, filename)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-    
+
     // Read navigation file if provided
     let nav_data = if let Some(nav_p) = nav_path {
         let nav_content = std::fs::read(nav_p)
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Cannot read nav file: {}", e)))?;
-        
+
         Some(parse_navigation(&nav_content)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?)
     } else {
         None
     };
-    
+
     // Configure and run analysis
     let systems_chars = systems
         .map(|s| s.iter().filter_map(|c| c.chars().next()).collect())
         .unwrap_or_else(|| vec!['G', 'R', 'E', 'C']);
-    
+
     let config = AnalysisConfig {
         min_elevation,
         min_cn0: 0.0,
@@ -1274,15 +1289,15 @@ fn analyze_cn0(
         spoofing_unexpected_threshold: 0.40,
         spoofing_min_unexpected_count: 8.0,
     };
-    
+
     let mut analyzer = CN0Analyzer::new(obs_data, config);
-    
+
     if let Some(nav) = nav_data {
         analyzer = analyzer.with_navigation(nav);
     }
-    
+
     let result = analyzer.analyze();
-    
+
     Ok(PyAnalysisResult { inner: result })
 }
 
@@ -1315,7 +1330,7 @@ fn parse_tle_content(content: &str) -> usize {
 fn geoveil_cn0(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("VERSION", VERSION)?;
     m.add("__version__", VERSION)?;
-    
+
     // Classes
     m.add_class::<PyRinexObsData>()?;
     m.add_class::<PyNavigationData>()?;
@@ -1323,7 +1338,7 @@ fn geoveil_cn0(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyCN0Analyzer>()?;
     m.add_class::<PyAnalysisResult>()?;
     m.add_class::<PyQualityScore>()?;
-    
+
     // Functions
     m.add_function(wrap_pyfunction!(read_rinex_obs, m)?)?;
     m.add_function(wrap_pyfunction!(read_rinex_obs_bytes, m)?)?;
@@ -1334,6 +1349,6 @@ fn geoveil_cn0(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(version, m)?)?;
     m.add_function(wrap_pyfunction!(download_tle, m)?)?;
     m.add_function(wrap_pyfunction!(parse_tle_content, m)?)?;
-    
+
     Ok(())
 }

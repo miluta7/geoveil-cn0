@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.9] — 2026-07-03
+
+### Changed
+- **Release the GIL during analysis**: `CN0Analyzer.analyze_file()` and
+  `CN0Analyzer.analyze_with_nav()` now run their pure-Rust cores (RINEX
+  parsing, navigation parsing, CN0 analysis, visibility assessment) with the
+  Python GIL released. Callers using thread pools — such as the GeoVeil
+  batch worker — get true multi-core parallelism; previously N worker
+  threads processed files effectively serially.
+
+---
+
 ## [0.3.8] — 2026-06-15
 
 ### Fixed
