@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "geoveil-cn0"
-version = "0.4.1"
+version = "0.4.2"
 description = "GNSS CN0 Analysis Library - Interference, Jamming & Spoofing Detection"
 readme = "README.md"
 license = {file = "LICENSE"}

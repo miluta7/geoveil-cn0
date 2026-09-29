@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-09-29
+
+Documentation release; the library code is unchanged from 0.4.1.
+
+### Changed
+- README shows real geoveil-cn0 output (BOR1 CN0 skyplot and 24 h
+  timeline, CN0 by elevation per constellation, BUCU quality score)
+  instead of illustrations. Image links are pinned to the release tag so
+  the PyPI page keeps rendering them.
+- The publish job reports to the `pypi` environment again.
+
 ## [0.4.1] — 2026-09-29
 
 ### Fixed
