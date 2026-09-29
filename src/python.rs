@@ -295,93 +295,22 @@ impl PyAnalysisResult {
     /// Get quality score object with all metrics
     #[getter]
     fn quality_score(&self) -> PyQualityScore {
-        let qs = &self.inner.quality_score;
-
-        // Compute proper AVAILABILITY from constellation stats
-        // This is satellites observed / expected, capped at 100%
-        let availability = if self.inner.constellation_stats.is_empty() {
-            50.0 // Default if no data
-        } else {
-            let total_observed: usize = self.inner.constellation_stats.values()
-                .map(|cs| cs.satellite_count)
-                .sum();
-            let total_expected: usize = self.inner.constellation_stats.values()
-                .map(|cs| cs.satellites_expected)
-                .sum();
-            if total_expected > 0 {
-                ((total_observed as f64 / total_expected as f64) * 100.0).min(100.0)
-            } else {
-                50.0
-            }
-        };
-
-        // Compute STABILITY from CN0 standard deviation
-        // Lower std dev = more stable signal = higher score
-        // Typical good: 3-5 dB-Hz std, poor: >8 dB-Hz std
-        let cn0_values: Vec<f64> = self.inner.constellation_stats.values()
-            .map(|cs| cs.std_cn0)
-            .collect();
-        let avg_std = if cn0_values.is_empty() {
-            5.0 // Default
-        } else {
-            cn0_values.iter().sum::<f64>() / cn0_values.len() as f64
-        };
-        // Score: 100 at 2dB std, 0 at 10dB std
-        let stability = ((10.0 - avg_std) / 8.0 * 100.0).clamp(0.0, 100.0);
-
-        // CONTINUITY: based on data gaps and cycle slips (lower = better)
-        let total_gaps: usize = self.inner.constellation_stats.values()
-            .map(|cs| cs.data_gaps)
-            .sum();
-        let total_epochs = self.inner.summary.total_epochs.max(1);
-        // Score: 100 if no gaps, decreases with more gaps
-        let gap_ratio = total_gaps as f64 / (total_epochs as f64 * self.inner.constellation_stats.len().max(1) as f64);
-        let continuity = ((1.0 - gap_ratio.min(1.0)) * 100.0).clamp(0.0, 100.0);
-
-        // DIVERSITY: number of systems observed (4 systems = 100%)
-        let diversity = (self.inner.summary.systems_observed.len() as f64 / 4.0 * 100.0).min(100.0);
-
-        // CN0 QUALITY: from the computed cn0_score
-        let cn0_quality = qs.cn0_score;
-
-        // OVERALL: weighted average
-        let overall = cn0_quality * 0.30 + availability * 0.25 + continuity * 0.20 + stability * 0.15 + diversity * 0.10;
-
-        // Rating
-        let rating = if overall >= 90.0 {
-            "A - Excellent".to_string()
-        } else if overall >= 80.0 {
-            "B - Good".to_string()
-        } else if overall >= 70.0 {
-            "C - Fair".to_string()
-        } else if overall >= 60.0 {
-            "D - Poor".to_string()
-        } else {
-            "F - Very Poor".to_string()
-        };
-
-        PyQualityScore {
-            overall,
-            rating,
-            cn0_quality,
-            availability,
-            continuity,
-            stability,
-            diversity,
-            post_processing_suitable: overall >= 65.0 && cn0_quality >= 60.0,
-        }
+        self.documented_quality()
     }
 
     /// Get quality score value (alias for overall)
     #[getter]
     fn score(&self) -> f64 {
-        self.inner.quality_score.overall
+        self.documented_quality().overall
     }
 
     /// Get quality grade
     #[getter]
     fn quality_grade(&self) -> String {
-        self.inner.quality_score.grade.clone()
+        if self.inner.quality_score.grade == "N/A" {
+            return "N/A".to_string();
+        }
+        self.documented_quality().rating[..1].to_string()
     }
 
     /// Get summary interpretation
@@ -645,6 +574,89 @@ impl PyAnalysisResult {
             self.inner.summary.mean_cn0,
             self.inner.summary.anomaly_count
         )
+    }
+}
+
+/// The documented five-component score (README "Quality Score Components").
+/// `quality_score`, `score` and `quality_grade` all derive from it so they agree.
+#[cfg(feature = "python")]
+impl PyAnalysisResult {
+    fn documented_quality(&self) -> PyQualityScore {
+        let qs = &self.inner.quality_score;
+
+        // Compute proper AVAILABILITY from constellation stats
+        // This is satellites observed / expected, capped at 100%
+        let availability = if self.inner.constellation_stats.is_empty() {
+            50.0 // Default if no data
+        } else {
+            let total_observed: usize = self.inner.constellation_stats.values()
+                .map(|cs| cs.satellite_count)
+                .sum();
+            let total_expected: usize = self.inner.constellation_stats.values()
+                .map(|cs| cs.satellites_expected)
+                .sum();
+            if total_expected > 0 {
+                ((total_observed as f64 / total_expected as f64) * 100.0).min(100.0)
+            } else {
+                50.0
+            }
+        };
+
+        // Compute STABILITY from CN0 standard deviation
+        // Lower std dev = more stable signal = higher score
+        // Typical good: 3-5 dB-Hz std, poor: >8 dB-Hz std
+        let cn0_values: Vec<f64> = self.inner.constellation_stats.values()
+            .map(|cs| cs.std_cn0)
+            .collect();
+        let avg_std = if cn0_values.is_empty() {
+            5.0 // Default
+        } else {
+            cn0_values.iter().sum::<f64>() / cn0_values.len() as f64
+        };
+        // Score: 100 at 2dB std, 0 at 10dB std
+        let stability = ((10.0 - avg_std) / 8.0 * 100.0).clamp(0.0, 100.0);
+
+        // CONTINUITY: based on data gaps and cycle slips (lower = better)
+        let total_gaps: usize = self.inner.constellation_stats.values()
+            .map(|cs| cs.data_gaps)
+            .sum();
+        let total_epochs = self.inner.summary.total_epochs.max(1);
+        // Score: 100 if no gaps, decreases with more gaps
+        let gap_ratio = total_gaps as f64 / (total_epochs as f64 * self.inner.constellation_stats.len().max(1) as f64);
+        let continuity = ((1.0 - gap_ratio.min(1.0)) * 100.0).clamp(0.0, 100.0);
+
+        // DIVERSITY: number of systems observed (4 systems = 100%)
+        let diversity = (self.inner.summary.systems_observed.len() as f64 / 4.0 * 100.0).min(100.0);
+
+        // CN0 QUALITY: from the computed cn0_score
+        let cn0_quality = qs.cn0_score;
+
+        // OVERALL: weighted average
+        let overall = cn0_quality * 0.30 + availability * 0.25 + continuity * 0.20 + stability * 0.15 + diversity * 0.10;
+
+        // Rating
+        let rating = if overall >= 90.0 {
+            "A - Excellent".to_string()
+        } else if overall >= 80.0 {
+            "B - Good".to_string()
+        } else if overall >= 70.0 {
+            "C - Fair".to_string()
+        } else if overall >= 60.0 {
+            "D - Poor".to_string()
+        } else {
+            "F - Very Poor".to_string()
+        };
+
+        PyQualityScore {
+            overall,
+            rating,
+            cn0_quality,
+            availability,
+            continuity,
+            stability,
+            diversity,
+            post_processing_suitable: overall >= 65.0 && cn0_quality >= 60.0,
+        }
     }
 }
 

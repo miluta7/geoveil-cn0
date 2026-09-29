@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/cn0_chart.svg" width="100%" alt="CN0 Signal Quality Chart">
+<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/cn0_chart.svg" width="100%" alt="CN0 Signal Quality Chart">
 
 # geoveil-cn0
 
@@ -53,7 +53,7 @@ Per-constellation stats
 
 **⚡ Rust Performance**
 
-&lt; 0.3 s per 24h file
+0.14–2.6 s per 24 h file
 Zero Python dependencies
 ThreadPool-parallel batches
 
@@ -63,8 +63,8 @@ ThreadPool-parallel batches
 **📡 RINEX Support**
 
 v2.x / v3.x / v4.x
-Hatanaka compression
-SP3 precise orbits
+Broadcast navigation
+Visibility prediction
 
 </td>
 <td align="center">
@@ -80,11 +80,11 @@ Desktop GUI script included
 </table>
 
 <div align="center">
-<img src="docs/quality_bars.svg" width="90%" alt="Quality Score Breakdown">
+<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/quality_bars.svg" width="90%" alt="Quality Score Breakdown">
 </div>
 
 <div align="center">
-<img src="docs/threat_matrix.svg" width="80%" alt="Threat Detection">
+<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/threat_matrix.svg" width="80%" alt="Threat Detection">
 </div>
 
 ---
@@ -102,24 +102,28 @@ No Rust toolchain required — pre-built wheels for Linux (x86\_64 + ARM/piwheel
 ## Quick Start
 
 ```python
-from geoveil_cn0 import CN0Analyzer, AnalyzerConfig
+from geoveil_cn0 import AnalysisConfig, CN0Analyzer
 
-config = AnalyzerConfig(
-    time_bin_seconds=300,        # 5-minute bins
+config = AnalysisConfig(
+    min_elevation=10.0,          # mask angle, degrees
+    time_bin_seconds=60,         # 1-minute bins
     anomaly_sensitivity=0.5,     # 0.0 = permissive, 1.0 = strict
     interference_threshold_db=6.0,
 )
 
 analyzer = CN0Analyzer(config)
-result = analyzer.analyze("COST00ROU_R_20260408_0100_30S_MO.rnx")
+result = analyzer.analyze_file("COST00ROU_R_20260980000_01D_30S_MO.rnx")
 
-print(f"Quality score : {result.quality_score:.1f} / 100  ({result.quality_grade})")
-print(f"Jamming       : {'⚠️  DETECTED' if result.jamming_detected else '✅ Clean'}")
-print(f"Spoofing      : {'⚠️  DETECTED' if result.spoofing_detected else '✅ Clean'}")
-print(f"Interference  : {'⚠️  DETECTED' if result.interference_detected else '✅ Clean'}")
-print(f"Satellites    : {result.total_satellites_tracked} tracked")
-print(f"Constellations: {', '.join(result.active_constellations)}")
+q = result.quality_score
+print(f"Quality score : {q.overall:.1f} / 100  ({q.rating})")
+print(f"Jamming       : {'DETECTED' if result.jamming_detected else 'clean'}")
+print(f"Spoofing      : {'DETECTED' if result.spoofing_detected else 'clean'}")
+print(f"Interference  : {'DETECTED' if result.interference_detected else 'clean'}")
+print(f"Satellites    : {result.total_satellites} tracked")
+print(f"Constellations: {', '.join(result.get_systems())}")
 ```
+
+geoveil-cn0 reads plain RINEX. Decompress Hatanaka (`.crx`, `.??d`) and gzip files first, for example with the [`hatanaka`](https://pypi.org/project/hatanaka/) package: `hatanaka.decompress_on_disk("file.crx.gz")`.
 
 ### Spoofing: visibility-based detection (new in 0.3.8)
 
@@ -131,7 +135,7 @@ result = analyzer.analyze_with_nav(
 )
 
 if result.has_visibility_prediction:
-    print(f"Confirmation rate: {result.visibility_confirmation_rate:.0%}")
+    print(f"Confirmation rate: {result.visibility_confirmation_rate:.0f}%")
     print(f"Unexpected sats  : {result.visibility_mean_unexpected:.1f}")
     print(f"Missing sats     : {result.visibility_mean_missing:.1f}")
 ```
@@ -142,7 +146,7 @@ if result.has_visibility_prediction:
 
 ```mermaid
 flowchart LR
-    A["RINEX obs\n.rnx/.crx/.gz"] --> C
+    A["RINEX obs\n.rnx / .??o"] --> C
     B["BRDC nav\n.nav/.rnx"] --> C
     C["CN0Analyzer\nRust core"] --> D["Quality Score\n0–100"]
     C --> E["Threat Flags\nJam/Spoof/Interf"]
@@ -156,30 +160,33 @@ flowchart LR
 
 ## Performance
 
-| File size | Epochs | Satellites | Time |
-|-----------|--------|------------|------|
-| 2.1 MB    | 2 880  | 18–24      | 0.18 s |
-| 8.4 MB    | 11 520 | 22–28      | 0.26 s |
-| 31 MB     | 43 200 | 24–32      | 0.29 s |
-| 100 MB    | 86 400 | 28–36      | 0.31 s |
+Public IGS files from 31 December 2025, plain RINEX, one core of an Intel Xeon E5-2620 v3 (2014), median of three runs, `min_elevation=10`, 60 s bins:
 
-Benchmarked on a single core (Intel i7-1185G7). ThreadPool batch processing scales linearly with core count.
+| File | Size | Epochs × sats | `analyze_file` | `analyze_with_nav` | Peak memory |
+|---|---|---|---|---|---|
+| RINEX 2.11 · 24 h · 30 s · ZIMM (GPS) | 5.4 MB | 2,880 × 32 | 0.14 s | 4.31 s | 104 MB |
+| RINEX 3.02 · 24 h · 30 s · BOR1 (6 GNSS) | 19.4 MB | 2,880 × 106 | 2.57 s | 7.97 s | 446 MB |
+| RINEX 3.05 · 15 min · 1 Hz · BUCU | 9.6 MB | 900 × 44 | 0.99 s | 2.62 s | 201 MB |
+| RINEX 3.05 · 1 h · 1 Hz · BUCU | 39.9 MB | 3,600 × 52 | 3.78 s | 9.98 s | 739 MB |
+| RINEX 3.05 · 24 h · 1 Hz · BUCU | 948.1 MB | 86,400 × 127 | 129.1 s | 263.8 s | 14.2 GB |
+
+The analysis is single-threaded; `CN0Analyzer` is stateless, so a `ThreadPoolExecutor` over files scales with the cores available. `analyze_with_nav` adds visibility prediction from broadcast ephemeris.
 
 ---
 
 ## Quality Score Components
 
-The composite quality score (0–100) is computed from five weighted components:
+The composite quality score (0–100, `result.quality_score`) is computed from five weighted components:
 
 | Component | Weight | Description |
 |-----------|--------|-------------|
-| CN0 Quality   | 35% | Mean signal strength relative to expected |
-| Availability  | 25% | Fraction of epochs with sufficient satellites |
-| Continuity    | 20% | Absence of tracking gaps and cycle slips |
-| Stability     | 12% | Low variance in per-satellite CN0 |
-| Diversity     | 8%  | Multi-constellation coverage |
+| CN0 Quality   | 30% | Mean signal strength: 0 at 30 dB-Hz, 100 at 45 dB-Hz |
+| Availability  | 25% | Satellites observed / satellites expected |
+| Continuity    | 20% | Absence of tracking gaps |
+| Stability     | 15% | Low CN0 standard deviation: 100 at 2 dB-Hz, 0 at 10 dB-Hz |
+| Diversity     | 10% | Constellations observed (4 = 100%) |
 
-Letter grades: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · **F** < 60
+Rating: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · **F** < 60. `result.score` and `result.quality_grade` report the same score.
 
 ---
 
@@ -197,48 +204,60 @@ Letter grades: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · *
 
 ## API Reference
 
-### `AnalyzerConfig`
+### `AnalysisConfig`
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `time_bin_seconds` | `int` | `300` | Seconds per analysis bin |
-| `min_elevation_deg` | `float` | `10.0` | Mask angle in degrees |
+| `min_elevation` | `float` | `5.0` | Mask angle in degrees |
+| `time_bin_seconds` | `int` | `60` | Seconds per analysis bin |
+| `systems` | `list[str]` | all | Constellations to analyze, e.g. `["G", "R", "E", "C"]` |
+| `detect_anomalies` | `bool` | `True` | Run the anomaly detectors |
 | `anomaly_sensitivity` | `float` | `0.5` | Detection sensitivity 0–1 |
 | `interference_threshold_db` | `float` | `6.0` | Interference trigger (dB) |
-| `spoofing_unexpected_threshold` | `float` | `0.4` | Fraction of unexpected sats |
-| `spoofing_min_unexpected_count` | `int` | `8` | Minimum count to flag |
-| `enable_timeseries` | `bool` | `True` | Output per-bin CN0 data |
-| `enable_skyplot` | `bool` | `False` | Compute Az/El tracks |
+| `spoofing_unexpected_threshold` | `float` | `0.40` | Fraction of unexpected satellites |
+| `spoofing_min_unexpected_count` | `float` | `8` | Minimum count to flag |
 
-### `AnalysisResult` — key properties
+### `CN0Analyzer`
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `quality_score` | `float` | Composite 0–100 |
+| Method | Description |
+|--------|-------------|
+| `analyze_file(obs_path)` | Analyze an observation file |
+| `analyze_with_nav(obs_path, nav_path)` | Also predict visibility from broadcast ephemeris (spoofing check, skyplot) |
+
+### `AnalysisResult` — key members
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `quality_score` | `QualityScore` | `overall`, `rating`, `cn0_quality`, `availability`, `continuity`, `stability`, `diversity` |
 | `quality_grade` | `str` | Letter A–F |
-| `jamming_detected` | `bool` | Jamming flag |
-| `spoofing_detected` | `bool` | Spoofing flag |
-| `interference_detected` | `bool` | Interference flag |
-| `has_visibility_prediction` | `bool` | Nav file was provided |
-| `visibility_confirmation_rate` | `float` | Fraction of predicted sats seen |
-| `visibility_mean_unexpected` | `float` | Mean unexpected sats per epoch |
-| `visibility_mean_missing` | `float` | Mean missing sats per epoch |
-| `constellation_stats` | `dict` | Per-GNSS stats |
-| `timeseries` | `list` | Per-bin CN0 data |
-| `anomalies` | `list` | Detected anomaly events |
+| `jamming_detected` / `spoofing_detected` / `interference_detected` | `bool` | Threat flags |
+| `mean_cn0`, `min_cn0`, `max_cn0` | `float` | CN0 statistics (dB-Hz) |
+| `total_epochs`, `total_satellites` | `int` | File size in epochs and satellites |
+| `visibility_confirmation_rate` | `float` | Percent of predicted satellites observed (with nav) |
+| `get_systems()` | `list` | Constellations present |
+| `get_constellation_summary(name)` | `dict` | Per-constellation CN0 and satellite counts |
+| `get_timeseries_data()` | `dict` | `hours`, `mean_cn0`, `satellite_count` per epoch |
+| `get_skyplot_data()` | `list` | Per-satellite azimuth, elevation and CN0 tracks (with nav) |
+| `get_anomalies()` | `list` | Detected anomaly events |
+| `to_json()` | `str` | Full result as JSON |
 
 ---
 
 ## Supported Formats
 
-| Format | Extensions | Notes |
-|--------|-----------|-------|
-| RINEX 2.x | `.obs`, `.??o` | All standard types |
-| RINEX 3.x | `.rnx`, `.obs` | Mixed observation files |
-| RINEX 4.x | `.rnx` | Latest format |
-| Hatanaka | `.crx`, `.??d` | Compressed observation |
-| Gzip | `.gz` | Any RINEX inside |
-| ZIP | `.zip` | Single-file archives |
+| Input | Extensions | Notes |
+|-------|-----------|-------|
+| RINEX 2.x observation | `.??o`, `.obs` | |
+| RINEX 3.x / 4.x observation | `.rnx`, `.obs` | Mixed observation files |
+| RINEX navigation | `.rnx`, `.??n`, `.??p` | For `analyze_with_nav` |
+
+Compressed files (Hatanaka `.crx`/`.??d`, gzip, ZIP) must be decompressed first.
+
+---
+
+## Website
+
+[miluta7.github.io/geoveil-cn0](https://miluta7.github.io/geoveil-cn0/): live CN0 skyplot, per-constellation signal curves and benchmarks from real geoveil-cn0 output.
 
 ---
 
@@ -267,7 +286,7 @@ Free for research, education, personal and other non-commercial use, provided yo
   title   = {geoveil-cn0: High-performance GNSS signal quality analysis},
   author  = {Dulea-Flueras, Miluta},
   year    = {2026},
-  version = {0.4.0},
+  version = {0.4.1},
   url     = {https://github.com/miluta7/geoveil-cn0},
 }
 ```

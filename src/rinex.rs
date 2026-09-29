@@ -5,9 +5,16 @@
 use crate::types::*;
 use std::collections::HashMap;
 
+/// RINEX is ASCII with byte-based columns. Map every non-ASCII byte to '?'
+/// so free-text fields (agency, observer, comments) in UTF-8 or Latin-1 can
+/// never shift a column or split a character when a line is sliced.
+pub(crate) fn ascii_text(content: &[u8]) -> String {
+    content.iter().map(|&b| if b.is_ascii() { b as char } else { '?' }).collect()
+}
+
 /// Parse RINEX observation file from bytes
 pub fn parse_rinex_obs(content: &[u8], filename: &str) -> Result<RinexObsData, String> {
-    let text = String::from_utf8_lossy(content);
+    let text = ascii_text(content);
     let lines: Vec<&str> = text.lines().collect();
     
     let mut data = RinexObsData::default();
@@ -481,4 +488,29 @@ fn parse_epoch_time_v2(s: &str) -> Result<Epoch, String> {
         minute: s[13..15].trim().parse().map_err(|_| "Invalid minute")?,
         second: s[15..26].trim().parse().map_err(|_| "Invalid second")?,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn non_ascii_header_text_does_not_panic() {
+        // "Łódź" is multi-byte UTF-8 and sits before column 60 (BOR1-style header)
+        let h = |text: &str, label: &str| {
+            let pad = 60usize.saturating_sub(text.chars().count());
+            format!("{text}{}{label}
+", " ".repeat(pad))
+        };
+        let mut f = String::new();
+        f += &h("     3.04           OBSERVATION DATA    M", "RINEX VERSION / TYPE");
+        f += &h("BOR1", "MARKER NAME");
+        f += &h("Łódź Observatory    Centrum Badań Kosmicznych", "OBSERVER / AGENCY");
+        f += &h("G    4 C1C L1C D1C S1C", "SYS / # / OBS TYPES");
+        f += &h("", "END OF HEADER");
+        let data = parse_rinex_obs(f.as_bytes(), "bor1.rnx").unwrap();
+        assert_eq!(data.marker_name, "BOR1");
+        assert_eq!(ascii_text("Łó".as_bytes()), "????");
+        assert_eq!(ascii_text(&[0xB3, b'A']), "?A"); // Latin-1 byte, not valid UTF-8
+    }
 }

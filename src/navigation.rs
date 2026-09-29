@@ -85,7 +85,7 @@ impl NavigationData {
 
 /// Parse navigation file
 pub fn parse_navigation(content: &[u8]) -> Result<NavigationData, String> {
-    let text = String::from_utf8_lossy(content);
+    let text = crate::rinex::ascii_text(content);
     let lines: Vec<&str> = text.lines().collect();
     
     let mut nav_data = NavigationData::default();

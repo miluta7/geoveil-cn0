@@ -7,6 +7,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-09-29
+
+### Fixed
+- **No more panics on non-ASCII or binary input.** Observation and navigation
+  files were decoded lossily and then sliced at fixed byte columns, so a
+  multi-byte character in a header field (agency or observer names) or a
+  compressed file passed by mistake raised a Rust panic (`PanicException`),
+  which `except Exception` does not catch. Non-ASCII bytes are now mapped to
+  `?` before parsing; a compressed file gives a normal `ValueError`.
+- **One quality score.** `score` and `quality_grade` came from an older
+  three-component score and could disagree with `quality_score` (for example
+  76 "C - Fair" next to grade "F"). All three now report the documented
+  five-component score.
+
+### Documentation
+- README quick start matches the real API (`AnalysisConfig`,
+  `analyze_file`, `quality_score.overall`); quality weights, configuration
+  and result tables corrected; supported formats list only what the library
+  reads (plain RINEX 2/3/4 and navigation files); measured timings replace
+  the old performance table.
+
 ## [0.4.0] — 2026-09-29
 
 ### Changed
