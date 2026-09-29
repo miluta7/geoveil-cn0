@@ -81,6 +81,9 @@ jobs:
     needs: build-wheels
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/geoveil-cn0
     
     steps:
       - uses: actions/checkout@v7

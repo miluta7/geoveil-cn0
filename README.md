@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/cn0_chart.svg" width="100%" alt="CN0 Signal Quality Chart">
+<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/img/real_signal_monitor.webp" width="560" alt="Real geoveil-cn0 output for BOR1 on 2025-12-31: CN0 skyplot of every satellite track and the 24-hour mean CN0 and satellite count">
+
+<sub>Real geoveil-cn0 output · BOR1 (EPN) · 31 December 2025 · <a href="https://miluta7.github.io/geoveil-cn0/">interactive version</a></sub>
 
 # geoveil-cn0
 
@@ -80,11 +82,15 @@ Desktop GUI script included
 </table>
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/quality_bars.svg" width="90%" alt="Quality Score Breakdown">
+<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/img/real_quality_score.webp" width="90%" alt="Real quality score for one hour of 1 Hz BUCU data: 96.3, A - Excellent, with its five components">
+
+<sub>Quality score and components from <code>analyze_with_nav</code> · BUCU (Bucharest) · 1 h at 1 Hz</sub>
 </div>
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/threat_matrix.svg" width="80%" alt="Threat Detection">
+<img src="https://raw.githubusercontent.com/miluta7/geoveil-cn0/main/docs/img/real_cn0_by_elevation.webp" width="90%" alt="Mean CN0 in 5-degree elevation bins for GPS, GLONASS, Galileo and BeiDou at BOR1">
+
+<sub>Mean CN0 by elevation per constellation · BOR1 · 24 h at 30 s</sub>
 </div>
 
 ---
