@@ -6,7 +6,7 @@
 
 **High-performance GNSS signal quality analysis — Rust core, Python API**
 
-[![PyPI version](https://badge.fury.io/py/geoveil-cn0.svg)](https://pypi.org/project/geoveil-cn0/) [![PyPI downloads](https://img.shields.io/pypi/dm/geoveil-cn0.svg?label=downloads)](https://pypi.org/project/geoveil-cn0/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Rust](https://img.shields.io/badge/powered%20by-Rust-orange.svg)](https://www.rust-lang.org/) [![GitHub Stars](https://img.shields.io/github/stars/miluta7/geoveil-cn0?style=social)](https://github.com/miluta7/geoveil-cn0)
+[![PyPI version](https://badge.fury.io/py/geoveil-cn0.svg)](https://pypi.org/project/geoveil-cn0/) [![PyPI downloads](https://img.shields.io/pypi/dm/geoveil-cn0.svg?label=downloads)](https://pypi.org/project/geoveil-cn0/) [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)](LICENSE) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Rust](https://img.shields.io/badge/powered%20by-Rust-orange.svg)](https://www.rust-lang.org/) [![GitHub Stars](https://img.shields.io/github/stars/miluta7/geoveil-cn0?style=social)](https://github.com/miluta7/geoveil-cn0)
 
 </div>
 
@@ -253,6 +253,12 @@ Letter grades: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · *
 For large-scale processing this library is wrapped by the GeoVeil batch system (FastAPI + Celery + MongoDB + MinIO + React dashboard): parallel workers, automatic BRDC ephemeris download, per-session analysis settings, WebSocket progress, and result persistence. See the [live demo](https://batch.geoveil-rinex.eu) above. For local scripting, `CN0Analyzer` is stateless — instantiate one per thread and process files with a `ThreadPoolExecutor`.
 
 ---
+
+## License
+
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) with an attribution term — see [LICENSE](LICENSE).
+
+Free for research, education, personal and other non-commercial use, provided you credit the author and cite the library (see Citation below). **Commercial use requires a separate license** — contact [miluta.flueras@cartografie.ro](mailto:miluta.flueras@cartografie.ro).
 
 ## Citation
 
