@@ -22,8 +22,8 @@ try:
     # Test version
     ver = g.__version__
     print(f"Library version: {ver}")
-    assert ver == "0.3.8", f"Expected 0.3.8, got {ver}"
-    print("PASS: Version is 0.3.8")
+    assert ver == "0.4.0", f"Expected 0.4.0, got {ver}"
+    print("PASS: Version is 0.4.0")
 
     print("\nAll tests PASSED")
     sys.exit(0)

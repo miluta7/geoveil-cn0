@@ -267,7 +267,7 @@ Free for research, education, personal and other non-commercial use, provided yo
   title   = {geoveil-cn0: High-performance GNSS signal quality analysis},
   author  = {Dulea-Flueras, Miluta},
   year    = {2026},
-  version = {0.3.8},
+  version = {0.4.0},
   url     = {https://github.com/miluta7/geoveil-cn0},
 }
 ```

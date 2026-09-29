@@ -7,11 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-29
+
 ### Changed
 - **License changed from MIT to PolyForm Noncommercial 1.0.0** with an
   attribution term. Non-commercial use remains free with credit; commercial
-  use now requires a separate license. Releases up to and including the
-  previous version remain available under MIT.
+  use now requires a separate license. Releases up to and including 0.3.9
+  remain available under MIT.
+- No code changes; the minor version marks the license change.
 
 ## [0.3.9] — 2026-07-03
 
