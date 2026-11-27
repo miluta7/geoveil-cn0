@@ -333,18 +333,19 @@ pub fn compute_satellite_position(
         'G' | 'J' => {
             let ephs = nav_data.gps_ephemeris.get(sat_id)?;
             let eph = find_closest_ephemeris(ephs, epoch)?;
-            compute_keplerian_position(eph, epoch, GM_WGS84, OMEGA_EARTH)
+            compute_keplerian_position(eph, epoch, GM_WGS84, OMEGA_EARTH, 0.0, false)
         }
         'E' => {
             let ephs = nav_data.galileo_ephemeris.get(sat_id)?;
             let eph = find_closest_ephemeris(ephs, epoch)?;
-            compute_keplerian_position(eph, epoch, GM_WGS84, OMEGA_EARTH)
+            compute_keplerian_position(eph, epoch, GM_WGS84, OMEGA_EARTH, 0.0, false)
         }
         'C' => {
             let ephs = nav_data.beidou_ephemeris.get(sat_id)?;
             let eph = find_closest_ephemeris(ephs, epoch)?;
-            // BeiDou uses CGCS2000 which is very close to WGS84
-            compute_keplerian_position(eph, epoch, GM_WGS84, OMEGA_EARTH)
+            // BeiDou uses CGCS2000 which is very close to WGS84. toe is in BeiDou time, and the
+            // GEO satellites need the BDS ICD transformation (without it they are ~3,700 km off)
+            compute_keplerian_position(eph, epoch, GM_WGS84, OMEGA_EARTH, BDT_MINUS_GPST_S, bds_geo(sat_id))
         }
         'R' => {
             let ephs = nav_data.glonass_ephemeris.get(sat_id)?;
@@ -381,9 +382,8 @@ fn find_closest_glonass_ephemeris<'a>(ephs: &'a [GlonassEphemeris], epoch: &Epoc
     
     let target_jd = epoch.julian_date();
     
-    // GLONASS ephemerides are valid for ~30 minutes typically
-    let max_age_days = 1.0 / 24.0;  // 1 hour in days
-    
+    let max_age_days = GLONASS_SPAN_S / 86400.0;
+
     ephs.iter()
         .filter(|e| (e.toc.julian_date() - target_jd).abs() < max_age_days)
         .min_by(|a, b| {
@@ -393,15 +393,31 @@ fn find_closest_glonass_ephemeris<'a>(ephs: &'a [GlonassEphemeris], epoch: &Epoc
         })
 }
 
-fn compute_keplerian_position(eph: &KeplerianEphemeris, epoch: &Epoch, gm: f64, omega_e: f64) -> Option<Ecef> {
+/// BeiDou time (BDT) minus GPS time, in seconds
+const BDT_MINUS_GPST_S: f64 = -14.0;
+
+/// How far from a GLONASS record (toc) it is picked and propagated. A record is broadcast
+/// every 30 min, but the RK4 propagation holds ~0.4 km at 4 h (p99 0.7 km), ~0.001 deg of
+/// elevation. A merged daily BRDC file runs about an hour behind; with 1 h, satellites
+/// dropped out between reloads and an elevation mask flickered every 30 min.
+const GLONASS_SPAN_S: f64 = 4.0 * 3600.0;
+
+/// BeiDou GEO satellites: C01-C05 (BDS-2) and C59 onwards (BDS-3), as in RTKLIB
+fn bds_geo(sat_id: &str) -> bool {
+    sat_id.get(1..).and_then(|p| p.parse::<u32>().ok()).is_some_and(|p| p <= 5 || p >= 59)
+}
+
+/// `time_shift_s`: the system's time minus GPS time (toe is in the system's time);
+/// `geo`: a BeiDou GEO satellite, which uses the BDS ICD transformation
+fn compute_keplerian_position(eph: &KeplerianEphemeris, epoch: &Epoch, gm: f64, omega_e: f64,
+                              time_shift_s: f64, geo: bool) -> Option<Ecef> {
     let a = eph.sqrt_a * eph.sqrt_a;
     let n0 = (gm / (a * a * a)).sqrt();
     let n = n0 + eph.delta_n;
-    
+
     // Time from ephemeris reference epoch
-    let (_, _toe_tow) = eph.toc.to_gps_time();
     let (_, t_tow) = epoch.to_gps_time();
-    let mut dt = t_tow - eph.toe;
+    let mut dt = t_tow + time_shift_s - eph.toe;
     
     // Week rollover
     if dt > 302400.0 {
@@ -444,9 +460,14 @@ fn compute_keplerian_position(eph: &KeplerianEphemeris, epoch: &Epoch, gm: f64, 
     let x_op = r * u.cos();
     let y_op = r * u.sin();
     
-    // Corrected longitude of ascending node
-    let omega = eph.omega0 + (eph.omega_dot - omega_e) * dt - omega_e * eph.toe;
-    
+    // Corrected longitude of ascending node (a BeiDou GEO leaves out the Earth's rotation
+    // since toe here and applies it in the rotation below)
+    let omega = if geo {
+        eph.omega0 + eph.omega_dot * dt - omega_e * eph.toe
+    } else {
+        eph.omega0 + (eph.omega_dot - omega_e) * dt - omega_e * eph.toe
+    };
+
     // ECEF coordinates
     let cos_omega = omega.cos();
     let sin_omega = omega.sin();
@@ -456,15 +477,25 @@ fn compute_keplerian_position(eph: &KeplerianEphemeris, epoch: &Epoch, gm: f64, 
     let x = x_op * cos_omega - y_op * cos_i * sin_omega;
     let y = x_op * sin_omega + y_op * cos_i * cos_omega;
     let z = y_op * sin_i;
-    
-    Some(Ecef::new(x, y, z))
+
+    if !geo {
+        return Some(Ecef::new(x, y, z));
+    }
+    // BeiDou GEO (BDS ICD): ECEF = Rz(omega_e * dt) . Rx(-5 deg) . (x, y, z)
+    let (s5, c5) = (-5.0f64).to_radians().sin_cos();
+    let (so, co) = (omega_e * dt).sin_cos();
+    Some(Ecef::new(
+        x * co + y * so * c5 + z * so * s5,
+        -x * so + y * co * c5 + z * co * s5,
+        -y * s5 + z * c5,
+    ))
 }
 
 fn compute_glonass_position(eph: &GlonassEphemeris, epoch: &Epoch) -> Option<Ecef> {
     // Time difference from ephemeris epoch
     let dt = epoch.diff_seconds(&eph.toc);
     
-    if dt.abs() > 7200.0 {
+    if dt.abs() > GLONASS_SPAN_S {
         return None; // Ephemeris too old
     }
     
@@ -589,4 +620,51 @@ pub fn calculate_azel(receiver: &Ecef, satellite: &Ecef) -> (f64, f64) {
     let el = u.atan2(horiz).to_degrees();
     
     (az, el)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A BeiDou record of the 2026-11-27 BRDC file (toc 00:00:00 BDT, week 1090), fields in RINEX order:
+    /// crs, delta_n, m0, cuc, e, cus, sqrt_a, toe, cic, omega0, cis, i0, crc, omega, omega_dot, idot
+    fn bds(prn: u32, f: [f64; 16]) -> KeplerianEphemeris {
+        let [crs, delta_n, m0, cuc, e, cus, sqrt_a, toe, cic, omega0, cis, i0, crc, omega, omega_dot, idot] = f;
+        KeplerianEphemeris {
+            prn, system: 'C', toc: Epoch::new(2026, 11, 27, 0, 0, 0.0), week: 1090,
+            crs, delta_n, m0, cuc, e, cus, sqrt_a, toe, cic, omega0, cis, i0, crc, omega, omega_dot, idot,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn beidou_geo_and_meo_positions_follow_the_bds_icd() {
+        let mut nav = NavigationData::default();
+        nav.beidou_ephemeris.insert("C02".into(), vec![bds(2, [
+            -1.073906250000e+02, 3.331567344581e-09, -1.836056344351, -3.743916749954e-06, 2.838956424966e-04,
+            2.957833930850e-05, 6.493419260025e+03, 432000.0, 3.394670784473e-07, -2.733535228840, -2.025626599789e-07,
+            4.365504080768e-02, -9.095000000000e+02, -2.298340167550e-01, -2.357241045694e-09, -1.107546133742e-09])]);
+        nav.beidou_ephemeris.insert("C20".into(), vec![bds(20, [
+            -1.744687500000e+02, 3.023697377704e-09, 2.723896746262, -8.733943104744e-06, 5.727191455662e-04,
+            7.620546966791e-06, 5.282641372681e+03, 432000.0, 6.938353180885e-08, -5.584361342494e-02, -3.911554813385e-08,
+            9.923883120423e-01, 2.234218750000e+02, -2.932664474961e-02, -6.437053843416e-09, -2.014369620866e-10])]);
+        // 00:30:14 GPS time = 00:30:00 BDT, tk = 1800 s
+        let t = Epoch::new(2026, 11, 27, 0, 30, 14.0);
+        for (sat, want) in [("C02", (7288670.1, 41485907.5, 1955920.4)),      // GEO
+                            ("C20", (-25504551.3, 10341317.9, 4714946.2))] {  // MEO
+            let p = compute_satellite_position(&nav, sat, &t).expect("position");
+            let d = ((p.x - want.0).powi(2) + (p.y - want.1).powi(2) + (p.z - want.2).powi(2)).sqrt();
+            assert!(d < 10.0, "{sat}: ({:.1}, {:.1}, {:.1}) is {d:.1} m from {want:?}", p.x, p.y, p.z);
+        }
+    }
+
+    #[test]
+    fn glonass_record_is_used_for_four_hours() {
+        let mut nav = NavigationData::default();
+        nav.glonass_ephemeris.insert("R01".into(), vec![GlonassEphemeris {
+            prn: 1, toc: Epoch::new(2026, 11, 24, 12, 0, 0.0), x: 25510e3, vy: 3953.0, ..Default::default()
+        }]);
+        assert!(compute_satellite_position(&nav, "R01", &Epoch::new(2026, 11, 24, 15, 30, 0.0)).is_some(), "toc + 210 min");
+        assert!(compute_satellite_position(&nav, "R01", &Epoch::new(2026, 11, 24, 16, 30, 0.0)).is_none(), "toc + 270 min");
+    }
 }

@@ -7,6 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-11-27
+
+### Fixed
+- BeiDou GEO satellites (C01–C05, C59 onwards) use the BDS ICD transformation; they were ~3,700 km off.
+- BeiDou orbits use BeiDou time (GPS time − 14 s) for toe; MEO and IGSO satellites were ~44 km along track.
+- A GLONASS record is now picked within 4 h and propagated up to 4 h (was 1 h and 2 h), so satellites no
+  longer drop out when a merged daily BRDC file runs about an hour behind.
+
 ## [0.4.2] — 2026-09-29
 
 Documentation release; the library code is unchanged from 0.4.1.
