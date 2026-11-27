@@ -206,6 +206,10 @@ Rating: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · **F** < 
 
 > **Spoofing detection** requires a navigation file (`analyze_with_nav`). The 0.3.8 algorithm compares observed satellites against ephemeris predictions — a high ratio of unexplained observations indicates signal replay attacks.
 
+> **Time integrity** (0.4.5): `result.time_integrity` checks the epoch times themselves. Data that claims to be observed after the file was written (header `PGM / RUN BY / DATE`) or in the future is flagged; an offset of a whole number of 1024-week cycles is reported as a GPS week rollover (genuine signals, wrong receiver week, with the weeks to subtract), anything else as a false time source. It also counts backward and repeated epochs, gaps, event records and power-failure flags, and notes GLONASS declared in the header but never observed.
+
+> **Counterfeit navigation records** (0.4.5): GPS records with an orbit and all nine perturbation terms exactly zero are dropped when a navigation file is read. Merged BRDC files carried them in 2025–2026 (35 % of the GPS records of BKG's merged file on 1 January 2026), with orbits up to 53,000 km off or the clock zeroed. `result.nav_records_dropped` reports how many.
+
 ---
 
 ## API Reference
@@ -240,6 +244,8 @@ Rating: **A** ≥ 90 · **B** ≥ 80 · **C** ≥ 70 · **D** ≥ 60 · **F** < 
 | `mean_cn0`, `min_cn0`, `max_cn0` | `float` | CN0 statistics (dB-Hz) |
 | `total_epochs`, `total_satellites` | `int` | File size in epochs and satellites |
 | `visibility_confirmation_rate` | `float` | Percent of predicted satellites observed (with nav) |
+| `time_integrity` | `dict` | `verdict`, `implausible_date`, `week_rollover_suspected`, `rollover_cycles`, epoch counts (see above) |
+| `nav_records_dropped` | `int` | Counterfeit GPS navigation records dropped (with nav) |
 | `get_systems()` | `list` | Constellations present |
 | `get_constellation_summary(name)` | `dict` | Per-constellation CN0 and satellite counts |
 | `get_timeseries_data()` | `dict` | `hours`, `mean_cn0`, `satellite_count` per epoch |
@@ -292,7 +298,7 @@ Free for research, education, personal and other non-commercial use, provided yo
   title   = {geoveil-cn0: High-performance GNSS signal quality analysis},
   author  = {Dulea-Flueras, Miluta},
   year    = {2026},
-  version = {0.4.4},
+  version = {0.4.5},
   url     = {https://github.com/miluta7/geoveil-cn0},
 }
 ```

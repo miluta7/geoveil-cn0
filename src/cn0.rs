@@ -34,7 +34,12 @@ impl CN0Analyzer {
         
         // File info
         result.file_info = self.build_file_info();
-        
+
+        // Epoch times first: a wrong date matters even when the file has no CN0
+        let now_jd = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs_f64() / 86400.0 + 2440587.5).unwrap_or(f64::MAX);
+        result.time_integrity = crate::time_integrity::assess(&self.obs_data, now_jd);
+
         // Extract all CN0 observations
         let observations = self.extract_cn0_observations();
         
@@ -133,6 +138,7 @@ impl CN0Analyzer {
             frequently_unexpected: assessment.summary.frequently_unexpected.clone(),
             by_system,
             anomalies,
+            nav_records_dropped: nav_data.dropped_gps_records,
         }
     }
     

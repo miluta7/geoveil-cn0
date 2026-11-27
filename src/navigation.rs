@@ -65,6 +65,8 @@ pub struct NavigationData {
     pub glonass_ephemeris: HashMap<String, Vec<GlonassEphemeris>>,
     /// KEY IS STRING (PRN as string)
     pub glonass_fcn: HashMap<String, i32>,
+    /// GPS records dropped as counterfeit, see `counterfeit_gps_record`
+    pub dropped_gps_records: usize,
 }
 
 impl NavigationData {
@@ -138,6 +140,11 @@ pub fn parse_navigation(content: &[u8]) -> Result<NavigationData, String> {
                 // Keplerian ephemeris (GPS, Galileo, BeiDou, QZSS)
                 if i + 7 < eph_lines.len() {
                     if let Some(eph) = parse_keplerian_ephemeris(&eph_lines[i..i+8], sys_char, nav_version) {
+                        if sys_char == 'G' && counterfeit_gps_record(&eph) {
+                            nav_data.dropped_gps_records += 1;
+                            i += 8;
+                            continue;
+                        }
                         let sat_id = format!("{}{:02}", sys_char, eph.prn);
                         let map = match sys_char {
                             'G' | 'J' => &mut nav_data.gps_ephemeris,
@@ -174,6 +181,17 @@ pub fn parse_navigation(content: &[u8]) -> Result<NavigationData, String> {
     }
     
     Ok(nav_data)
+}
+
+/// A GPS record with an orbit whose nine perturbation terms are all exactly zero. No control
+/// segment broadcasts one, but merged BRDC files carried them in 2025-2026 (35 % of the GPS
+/// records of BKG's merged file on 1 January 2026): relabelled orbits 13,000-53,000 km off, or
+/// the right orbit with a zeroed clock (up to ~200 km of range). Picked by toc, they corrupt
+/// skyplots, visibility and the spoofing check. Dropping them removed none of 457,593 genuine
+/// records from clean stations (EuroVeil time-purity study, 2026).
+fn counterfeit_gps_record(e: &KeplerianEphemeris) -> bool {
+    e.sqrt_a > 1000.0
+        && [e.crs, e.crc, e.cus, e.cuc, e.cis, e.cic, e.delta_n, e.idot, e.omega_dot].iter().all(|v| *v == 0.0)
 }
 
 fn parse_keplerian_ephemeris(lines: &[&str], sys: char, version: f64) -> Option<KeplerianEphemeris> {
@@ -666,5 +684,35 @@ mod tests {
         }]);
         assert!(compute_satellite_position(&nav, "R01", &Epoch::new(2026, 11, 24, 15, 30, 0.0)).is_some(), "toc + 210 min");
         assert!(compute_satellite_position(&nav, "R01", &Epoch::new(2026, 11, 24, 16, 30, 0.0)).is_none(), "toc + 270 min");
+    }
+
+    #[test]
+    fn counterfeit_gps_records_are_dropped() {
+        // Two real G01 records of BKG's merged BRDC00WRD file of 2026-01-01: the first has all
+        // nine perturbation terms zero and af0 -2.8e-9 s, the second is the genuine broadcast
+        let nav = parse_navigation(concat!(
+            "     3.04           N: GNSS NAV DATA    M: MIXED            RINEX VERSION / TYPE\n",
+            "                                                            END OF HEADER\n",
+            "G01 2026 01 01 02 14 56-2.793967723846e-09 0.000000000000e+00 0.000000000000e+00\n",
+            "     4.100000000000e+01 0.000000000000e+00 0.000000000000e+00-1.950639538961e+00\n",
+            "     0.000000000000e+00 1.328157610260e-03 0.000000000000e+00 5.153421175003e+03\n",
+            "     3.600000000000e+05 0.000000000000e+00-2.019467486607e+00 0.000000000000e+00\n",
+            "     9.583453920294e-01 0.000000000000e+00-4.245246362980e-03 0.000000000000e+00\n",
+            "     0.000000000000e+00 1.000000000000e+00 2.399000000000e+03 0.000000000000e+00\n",
+            "     2.000000000000e+00 0.000000000000e+00 0.000000000000e+00 4.100000000000e+01\n",
+            "     3.553500000000e+05 4.000000000000e+00\n",
+            "G01 2025 12 31 12 00 00 3.479672595859e-04-2.842170943040e-12 0.000000000000e+00\n",
+            "     2.000000000000e+00-2.253125000000e+01 4.722339408403e-09 2.266294963116e+00\n",
+            "    -1.205131411552e-06 1.284279860556e-03-4.991888999939e-07 5.153638978958e+03\n",
+            "     3.024000000000e+05-4.284083843231e-08-2.018929207362e+00 5.774199962616e-08\n",
+            "     9.582966768574e-01 3.851250000000e+02-5.651360064688e-02-8.607858426046e-09\n",
+            "     8.214627762737e-12 1.000000000000e+00 2.399000000000e+03 0.000000000000e+00\n",
+            "     2.800000000000e+00 0.000000000000e+00-8.847564458847e-09 2.000000000000e+00\n",
+            "     2.951400000000e+05 0.000000000000e+00 0.000000000000e+00 0.000000000000e+00\n",
+        ).as_bytes()).expect("parses");
+        assert_eq!(nav.dropped_gps_records, 1);
+        let kept = &nav.gps_ephemeris["G01"];
+        assert_eq!(kept.len(), 1);
+        assert_eq!((kept[0].toc.day, kept[0].toc.hour), (31, 12), "the genuine record is kept");
     }
 }

@@ -62,6 +62,8 @@ pub fn parse_rinex_obs(content: &[u8], filename: &str) -> Result<RinexObsData, S
         } else if label.contains("# / TYPES OF OBSERV") {
             // RINEX 2.x format
             parse_obs_types_v2(line, &mut data.obs_types);
+        } else if label.contains("PGM / RUN BY / DATE") {
+            data.file_written = line.get(40..60).and_then(parse_run_date);
         } else if label.contains("GLONASS SLOT / FRQ") || label.contains("GLONASS COD/PHS/BIS") {
             parse_glonass_fcn(line, &mut data.glonass_fcn);
         } else if label.contains("END OF HEADER") {
@@ -89,6 +91,25 @@ pub fn parse_rinex_obs(content: &[u8], filename: &str) -> Result<RinexObsData, S
     }
     
     Ok(data)
+}
+
+/// PGM / RUN BY / DATE, columns 41-60: "yyyymmdd hhmmss zone" (RINEX 3 and 4) or
+/// "dd-MMM-yy hh:mm" (RINEX 2). Anything else, or an impossible date, gives None.
+fn parse_run_date(field: &str) -> Option<Epoch> {
+    const MONTHS: [&str; 12] = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    let s = field.trim();
+    let n = |a: usize, b: usize| s.get(a..b).and_then(|t| t.parse::<u32>().ok());
+    let (y, mo, d, h, mi, sec) = if s.get(8..9) == Some(" ") {
+        (n(0, 4)? as i32, n(4, 6)?, n(6, 8)?, n(9, 11)?, n(11, 13)?, n(13, 15).unwrap_or(0))
+    } else if s.get(2..3) == Some("-") && s.get(6..7) == Some("-") {
+        let mo = MONTHS.iter().position(|m| s.get(3..6).is_some_and(|t| t.eq_ignore_ascii_case(m)))? as u32 + 1;
+        let yy = n(7, 9)? as i32;
+        (if yy < 80 { 2000 + yy } else { 1900 + yy }, mo, n(0, 2)?, n(10, 12)?, n(13, 15)?, 0)
+    } else {
+        return None;
+    };
+    let valid = (1..=12).contains(&mo) && (1..=31).contains(&d) && h < 24 && mi < 60 && sec < 61;
+    valid.then(|| Epoch::new(y, mo, d, h, mi, sec as f64))
 }
 
 fn parse_obs_types_v3(line: &str, obs_types: &mut HashMap<String, Vec<String>>, last_system: Option<char>) -> Option<char> {
@@ -205,7 +226,12 @@ fn parse_epochs_v3(lines: &[&str], data: &mut RinexObsData) -> Result<(), String
             i += 1;
             continue;
         }
-        
+
+        // Event records (flags 2-5) may leave the date blank, so read the flag column (32) first
+        if line.get(31..32).and_then(|c| c.parse::<u8>().ok()).is_some_and(|f| (2..=5).contains(&f)) {
+            data.event_records += 1;
+        }
+
         // Parse epoch header: > 2024 06 15 12 30 45.0000000  0 12
         let epoch = match parse_epoch_time_v3(&line[1..]) {
             Ok(e) => e,
@@ -336,6 +362,9 @@ fn parse_epochs_v2(lines: &[&str], data: &mut RinexObsData) -> Result<(), String
         
         // Parse flag and number of satellites
         let flag = line[26..29].trim().parse::<u8>().unwrap_or(0);
+        if (2..=5).contains(&flag) {
+            data.event_records += 1;
+        }
         let num_sats = line[29..32].trim().parse::<usize>().unwrap_or(0);
         
         if num_sats == 0 {
@@ -512,5 +541,15 @@ mod tests {
         assert_eq!(data.marker_name, "BOR1");
         assert_eq!(ascii_text("Łó".as_bytes()), "????");
         assert_eq!(ascii_text(&[0xB3, b'A']), "?A"); // Latin-1 byte, not valid UTF-8
+    }
+
+    #[test]
+    fn file_write_date_is_read_from_the_header() {
+        // Sulina's Spider server, RINEX 3, and the RINEX 2 recommended form
+        let spider = "Spider V7.11.1.109  CNC                 20260617 150151 UTC PGM / RUN BY / DATE";
+        assert_eq!(parse_run_date(&spider[40..60]), Some(Epoch::new(2026, 6, 17, 15, 1, 51.0)));
+        assert_eq!(parse_run_date("17-JUN-26 15:01     "), Some(Epoch::new(2026, 6, 17, 15, 1, 0.0)));
+        assert_eq!(parse_run_date("                    "), None);
+        assert_eq!(parse_run_date("20261341 000000 UTC "), None, "month 13");
     }
 }

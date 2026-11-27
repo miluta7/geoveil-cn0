@@ -7,6 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.5] — 2026-11-27
+
+From the 2026 time-purity study of the spoofed Sulina station (EuroVeil).
+
+### Added
+- `result.time_integrity`: flags data dated after its file was written or in the future, tells a GPS
+  week rollover (k × 1024 weeks: genuine signals, wrong receiver week) from a false time source, and counts
+  backward and repeated epochs, gaps, event records and power-failure flags. Reads `PGM / RUN BY / DATE`.
+- `result.nav_records_dropped` and `NavigationData.dropped_gps_records`.
+
+### Fixed
+- GPS navigation records with all nine perturbation terms zero are dropped. Merged BRDC files carried
+  them in 2025–2026 (35 % of BKG's merged GPS records on 1 January 2026), up to 53,000 km off or with the
+  clock zeroed, and they corrupted skyplots, visibility and the spoofing check.
+
 ## [0.4.4] — 2026-11-27
 
 The 0.4.3 fixes below, published. 0.4.3 was tagged but never reached PyPI: its wheel build

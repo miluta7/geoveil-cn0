@@ -429,6 +429,39 @@ pub struct AnalysisResult {
     pub visibility: Option<VisibilityData>,
     pub spoofing_unexpected_threshold: f64,
     pub spoofing_min_unexpected_count: f64,
+    /// Whether the epoch times themselves are believable
+    pub time_integrity: TimeIntegrity,
+}
+
+/// Plausibility of the epoch times. A receiver that follows a false time source, or
+/// resolves the GPS week 1024 weeks late, writes wrong dates that look normal.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TimeIntegrity {
+    /// Header PGM / RUN BY / DATE, ISO format, if readable
+    pub file_written: Option<String>,
+    /// First epoch minus the reference time (when written, otherwise now), in weeks
+    pub weeks_after_reference: Option<f64>,
+    /// The data claims to be observed after the file was written, or in the future
+    pub implausible_date: bool,
+    /// The offset is a whole number of 1024-week cycles: genuine signals, wrong receiver week
+    pub week_rollover_suspected: bool,
+    /// Number of 1024-week cycles to subtract to re-date the file (0 if not a rollover)
+    pub rollover_cycles: i32,
+    /// Epochs earlier than the one before
+    pub backward_epochs: usize,
+    /// Epochs equal to the one before
+    pub repeated_epochs: usize,
+    /// Steps longer than 1.5 x the sampling interval
+    pub gaps: usize,
+    /// Event records (epoch flags 2 to 5)
+    pub event_records: usize,
+    /// Epochs flagged as following a power failure (flag 1)
+    pub power_failure_epochs: usize,
+    /// GLONASS is in the header but never observed while other systems are
+    /// (receivers drop GLONASS when their own date is wrong)
+    pub glonass_declared_not_observed: bool,
+    /// One-line summary
+    pub verdict: String,
 }
 
 /// Visibility assessment data
@@ -447,6 +480,8 @@ pub struct VisibilityData {
     pub by_system: HashMap<String, SystemVisibilityStats>,
     /// Visibility anomalies
     pub anomalies: Vec<VisibilityAnomalyInfo>,
+    /// GPS navigation records dropped as counterfeit (all nine perturbation terms zero)
+    pub nav_records_dropped: usize,
 }
 
 impl Default for AnalysisResult {
@@ -471,6 +506,7 @@ impl Default for AnalysisResult {
             visibility: None,
             spoofing_unexpected_threshold: 0.40,
             spoofing_min_unexpected_count: 8.0,
+            time_integrity: TimeIntegrity::default(),
         }
     }
 }
@@ -563,6 +599,10 @@ pub struct RinexObsData {
     pub epochs: Vec<EpochData>,
     /// KEY IS STRING (PRN as string like "1", "24")
     pub glonass_fcn: HashMap<String, i32>,
+    /// When the file was written (header PGM / RUN BY / DATE), if the date is readable
+    pub file_written: Option<Epoch>,
+    /// Event records (epoch flags 2 to 5); they carry no observations and are not in `epochs`
+    pub event_records: usize,
 }
 
 impl RinexObsData {

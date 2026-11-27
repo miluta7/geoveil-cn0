@@ -417,6 +417,33 @@ impl PyAnalysisResult {
             .unwrap_or_else(|| "None".to_string())
     }
 
+    /// Whether the epoch times are believable: implausible_date, week_rollover_suspected,
+    /// rollover_cycles, backward/repeated epochs, gaps, events, verdict (all as strings)
+    #[getter]
+    fn time_integrity(&self) -> HashMap<String, String> {
+        let t = &self.inner.time_integrity;
+        let mut m = HashMap::new();
+        m.insert("verdict".to_string(), t.verdict.clone());
+        m.insert("implausible_date".to_string(), t.implausible_date.to_string());
+        m.insert("week_rollover_suspected".to_string(), t.week_rollover_suspected.to_string());
+        m.insert("rollover_cycles".to_string(), t.rollover_cycles.to_string());
+        m.insert("file_written".to_string(), t.file_written.clone().unwrap_or_default());
+        m.insert("weeks_after_reference".to_string(), t.weeks_after_reference.map(|w| format!("{w:.1}")).unwrap_or_default());
+        m.insert("backward_epochs".to_string(), t.backward_epochs.to_string());
+        m.insert("repeated_epochs".to_string(), t.repeated_epochs.to_string());
+        m.insert("gaps".to_string(), t.gaps.to_string());
+        m.insert("event_records".to_string(), t.event_records.to_string());
+        m.insert("power_failure_epochs".to_string(), t.power_failure_epochs.to_string());
+        m.insert("glonass_declared_not_observed".to_string(), t.glonass_declared_not_observed.to_string());
+        m
+    }
+
+    /// GPS navigation records dropped as counterfeit (all nine perturbation terms zero)
+    #[getter]
+    fn nav_records_dropped(&self) -> usize {
+        self.inner.visibility.as_ref().map(|v| v.nav_records_dropped).unwrap_or(0)
+    }
+
     /// Get visibility confirmation rate
     #[getter]
     fn visibility_confirmation_rate(&self) -> f64 {
@@ -697,6 +724,12 @@ impl PyNavigationData {
     #[getter]
     fn galileo_count(&self) -> usize {
         self.inner.galileo_ephemeris.len()
+    }
+
+    /// GPS records dropped as counterfeit (all nine perturbation terms zero)
+    #[getter]
+    fn dropped_gps_records(&self) -> usize {
+        self.inner.dropped_gps_records
     }
 
     /// Get BeiDou satellite count

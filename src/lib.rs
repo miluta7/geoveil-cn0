@@ -18,6 +18,7 @@ pub mod rinex;
 pub mod navigation;
 pub mod tle;
 pub mod visibility;
+pub mod time_integrity;
 pub mod cn0;
 pub mod python;
 
