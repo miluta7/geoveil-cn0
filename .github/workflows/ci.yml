@@ -44,7 +44,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # ubuntu-24.04, not -latest: Ubuntu 26.04 runners have no Python 3.9 (0.4.3 failed there)
+        os: [ubuntu-24.04, windows-latest, macos-latest]
         python-version: ['3.9', '3.10', '3.11', '3.12']
         
     steps:

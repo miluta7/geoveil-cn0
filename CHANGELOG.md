@@ -7,7 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [0.4.3] — 2026-11-27
+## [0.4.4] — 2026-11-27
+
+The 0.4.3 fixes below, published. 0.4.3 was tagged but never reached PyPI: its wheel build
+failed because GitHub's Ubuntu 26.04 runners have no Python 3.9.
+
+### Changed
+- Linux wheels are built on Ubuntu 24.04.
+
+## [0.4.3] — 2026-11-27 (not on PyPI)
 
 ### Fixed
 - BeiDou GEO satellites (C01–C05, C59 onwards) use the BDS ICD transformation; they were ~3,700 km off.
