@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+title: "geoveil-cn0: GNSS CN0 signal quality analysis library"
+abstract: "GNSS signal quality analysis library: CN0 scoring, jamming, spoofing and interference detection, multi-constellation support. Rust core, Python API."
+authors:
+  - family-names: "Dulea-Flueraș"
+    given-names: "Miluță"
+    orcid: "https://orcid.org/0009-0006-2618-4735"
+    affiliation: "National Center for Cartography, Romania"
+doi: "10.5281/zenodo.24626488"
+license: "PolyForm-Noncommercial-1.0.0"
+repository-code: "https://github.com/miluta7/geoveil-cn0"
+url: "https://miluta7.github.io/geoveil-cn0/"
+keywords:
+  - GNSS
+  - CN0
+  - signal quality
+  - interference detection
+  - jamming
+  - spoofing
+  - RINEX
