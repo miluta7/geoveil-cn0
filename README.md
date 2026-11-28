@@ -291,6 +291,10 @@ For large-scale processing this library is wrapped by the GeoVeil batch system (
 
 Free for research, education, personal and other non-commercial use, provided you credit the author and cite the library (see Citation below). **Commercial use requires a separate license** — contact [miluta.flueras@cartografie.ro](mailto:miluta.flueras@cartografie.ro).
 
+## AI disclosure
+
+AI coding agents were used in the process of writing this code.
+
 ## Citation
 
 If you use geoveil-cn0, please cite it through its Zenodo DOI, which covers all versions: [10.5281/zenodo.24626488](https://doi.org/10.5281/zenodo.24626488).
