@@ -8,7 +8,7 @@
 
 **High-performance GNSS signal quality analysis — Rust core, Python API**
 
-[![PyPI version](https://badge.fury.io/py/geoveil-cn0.svg)](https://pypi.org/project/geoveil-cn0/) [![PyPI downloads](https://img.shields.io/pypi/dm/geoveil-cn0.svg?label=downloads)](https://pypi.org/project/geoveil-cn0/) [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)](LICENSE) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Rust](https://img.shields.io/badge/powered%20by-Rust-orange.svg)](https://www.rust-lang.org/) [![GitHub Stars](https://img.shields.io/github/stars/miluta7/geoveil-cn0?style=social)](https://github.com/miluta7/geoveil-cn0)
+[![PyPI version](https://badge.fury.io/py/geoveil-cn0.svg)](https://pypi.org/project/geoveil-cn0/) [![PyPI downloads](https://img.shields.io/pypi/dm/geoveil-cn0.svg?label=downloads)](https://pypi.org/project/geoveil-cn0/) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24626488.svg)](https://doi.org/10.5281/zenodo.24626488) [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)](LICENSE) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Rust](https://img.shields.io/badge/powered%20by-Rust-orange.svg)](https://www.rust-lang.org/) [![GitHub Stars](https://img.shields.io/github/stars/miluta7/geoveil-cn0?style=social)](https://github.com/miluta7/geoveil-cn0)
 
 </div>
 
@@ -293,12 +293,16 @@ Free for research, education, personal and other non-commercial use, provided yo
 
 ## Citation
 
+If you use geoveil-cn0, please cite it through its Zenodo DOI, which covers all versions: [10.5281/zenodo.24626488](https://doi.org/10.5281/zenodo.24626488).
+
 ```bibtex
 @software{geoveil_cn0_2026,
   title   = {geoveil-cn0: High-performance GNSS signal quality analysis},
   author  = {Dulea-Flueras, Miluta},
   year    = {2026},
   version = {0.4.5},
+  publisher = {Zenodo},
+  doi     = {10.5281/zenodo.24626488},
   url     = {https://github.com/miluta7/geoveil-cn0},
 }
 ```
